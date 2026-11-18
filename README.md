@@ -1,5 +1,7 @@
 # Gramofon
 
+[![Test](https://github.com/jakalijey/gramofon/actions/workflows/test.yml/badge.svg)](https://github.com/jakalijey/gramofon/actions/workflows/test.yml)
+
 **Independent music, paid straight to the artists you play.**
 
 Gramofon is a music club built around a giant gramophone. You walk into a hall with two doors: the Gramofon door leads to the
@@ -30,7 +32,8 @@ Live: https://gramofon.heylogram.com · Test network (free Chipnet coins): https
 | Legal | `legal/` | Terms and privacy, published as `/terms` and `/privacy`. |
 
 Build the drawing core: `cd cizim && sh build.sh` (needs Emscripten). Build the payment bundle: `cd payment && npm install && npm run build`.
-Serve `site/` with any static web server.
+Serve `site/` with any static web server. Run the tests with `npm test` (Node 22, no packages needed); every push runs them
+on GitHub, and rebuilds the drawing core from source to check it matches the committed build.
 
 ## BCH BLAZE 2026
 

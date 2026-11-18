@@ -1,0 +1,34 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # site, radio artists, tempo and analysis, server rules: Node only, no packages
+      - run: npm test
+
+  drawing-core:
+    runs-on: ubuntu-latest
+    container: emscripten/emsdk:7.0.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep the committed build
+        run: cp site/cizim/gramofon-cekirdek.wasm /tmp/committed.wasm && cp site/cizim/gramofon-cekirdek.js /tmp/committed.js
+      - name: Build the drawing core from source
+        run: cd cizim && sh build.sh
+      - name: The committed build matches the source
+        run: |
+          sha256sum /tmp/committed.wasm site/cizim/gramofon-cekirdek.wasm
+          cmp /tmp/committed.wasm site/cizim/gramofon-cekirdek.wasm
+          cmp /tmp/committed.js site/cizim/gramofon-cekirdek.js
