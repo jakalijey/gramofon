@@ -1,0 +1,11 @@
+# Gramofon
+
+> A giant animated gramophone for independent music, paid in Bitcoin Cash.
+
+Gramofon (https://gramofon.heylogram.com) is a web app for listening to independent artists. Listeners connect a Bitcoin Cash wallet with WizardConnect (for example Paytaca or Selene) and pay for a one-month membership in BCH; the money goes to the artists they actually play. Artists upload their own songs, lossless files are kept as FLAC, and every song is reviewed by hand before it goes on the turntable.
+
+- Website: https://gramofon.heylogram.com/
+- Privacy: https://gramofon.heylogram.com/privacy
+- Terms: https://gramofon.heylogram.com/terms
+- Contact: gramofon@heylogram.com
+- Made by Heylogram (https://heylogram.com) during the BCH BLAZE 2026 hackathon.

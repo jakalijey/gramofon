@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gramofon</title>
+<meta name="description" content="A giant gramophone for independent music. Drop a BCH token for a month of songs; your money goes to the artists you play.">
+<meta name="theme-color" content="#1A0D2E">
+<link rel="canonical" href="https://gramofon.heylogram.com/">
+<link rel="icon" href="icon-32.png?v=1" sizes="32x32" type="image/png">
+<link rel="icon" href="icon.svg?v=1" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png?v=1">
+<link rel="manifest" href="manifest.json?v=1">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Gramofon">
+<meta property="og:title" content="Gramofon">
+<meta property="og:description" content="A giant gramophone for independent music. Drop a BCH token for a month of songs; your money goes to the artists you play.">
+<meta property="og:url" content="https://gramofon.heylogram.com/">
+<meta property="og:image" content="https://gramofon.heylogram.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="stil.css">
+</head>
+<body>
+<p class="test-serit" id="test-serit" hidden><strong>Test network</strong> · pay with free Chipnet test coins (faucet.paytaca.com) · <a href="/?test=0">Back to the real site</a></p>
+<main class="duzen bekliyor">
+  <section class="sahne" id="sahne" aria-label="The gramophone">
+    <canvas id="tuval" aria-hidden="true"></canvas>
+    <p class="cizim-hata">The animation could not load. The music still works.</p>
+    <button type="button" class="kapi-dugme" id="kapi-sol" aria-label="Enter the gramophone room" hidden></button>
+    <button type="button" class="kapi-dugme" id="kapi-sag" aria-label="Enter the recording room" hidden></button>
+    <button type="button" class="kapi-dugme" id="yan-kapi" aria-label="Go through the side door to the gramophone room" hidden></button>
+    <button type="button" class="kapi-dugme" id="yan-kapi-oda" aria-label="Go through the side door to the recording room" hidden></button>
+    <p class="salon-karsilama" id="salon-karsilama" hidden><strong>Gramofon</strong> · independent music, paid straight to the artists you play. <span id="salon-karsilama-alt">Step through the Gramofon door.</span></p>
+    <nav class="salon-bag" id="salon-bag" aria-label="About Gramofon" hidden>
+      <a href="/privacy">Privacy</a><span aria-hidden="true">·</span><a href="/terms">Terms</a><span aria-hidden="true">·</span><a href="mailto:gramofon@heylogram.com">gramofon@heylogram.com</a>
+    </nav>
+    <button type="button" class="salona-don" id="salona-don" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>Hall</span>
+    </button>
+    <button type="button" class="tam-ac" id="tam-ac" aria-label="Full screen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
+    </button>
+    <div class="tam-yazi" id="tam-yazi" aria-hidden="true"><p class="tam-ad" id="tam-ad"></p><p class="tam-sanatci" id="tam-sanatci"></p><p class="tam-ipucu">Tap to show the controls</p></div>
+  </section>
+  <aside class="panel">
+    <header class="baslik">
+      <div class="baslik-ust">
+        <h1>Gramofon</h1>
+        <button type="button" class="pano-kapat" id="pano-kapat" aria-label="Put the board back on the wall">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <p>Independent music, paid straight to the artists you play.</p>
+    </header>
+    <section class="uyelik" id="uyelik" aria-label="Membership">
+      <button type="button" class="jeton" id="jeton-al">
+        <svg class="jeton-para" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="#F5EFE1" stroke="#1A0D2E" stroke-width="2"/><circle cx="17" cy="17" r="11.4" fill="none" stroke="#1A0D2E" stroke-width="1.3" stroke-dasharray="1.5 1.9"/><path d="M15 21.4V11.6l6.2-1.7v9.4" fill="none" stroke="#1A0D2E" stroke-width="1.8" stroke-linejoin="round"/><circle cx="13.3" cy="21.6" r="2.4" fill="#1A0D2E"/><circle cx="19.5" cy="19.4" r="2.4" fill="#1A0D2E"/></svg>
+        <span class="jeton-yazi">
+          <span class="jeton-ust">Drop a token</span>
+          <span class="jeton-alt">1 month of music · <span id="fiyat"></span></span>
+        </span>
+      </button>
+      <p class="uye" id="uye-bilgi" hidden>Member until <span id="uye-bitis"></span></p>
+      <p class="durum" id="durum" role="status" aria-live="polite"></p>
+    </section>
+    <section class="simdi" aria-label="Now playing">
+      <div class="simdi-ust">
+        <img class="simdi-kapak" id="simdi-kapak" alt="" width="64" height="64" hidden>
+        <div class="simdi-yazi">
+          <p class="simdi-ad" id="simdi-ad">Nothing playing</p>
+          <p class="simdi-sanatci" id="simdi-sanatci"></p>
+        </div>
+      </div>
+      <div class="ilerleme" aria-hidden="true"><div class="ilerleme-dolu" id="ilerleme-dolu"></div></div>
+      <div class="zamanlar"><span id="gecen">0:00</span><span id="sure">0:00</span></div>
+      <div class="kontroller">
+        <button type="button" class="dugme" id="onceki" aria-label="Previous">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6.5v11L9.5 12zM6 6h2.2v12H6z"/></svg>
+        </button>
+        <button type="button" class="dugme ana" id="cal" aria-label="Play" data-caliyor="0">
+          <svg class="ikon-cal" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13L18.5 12z"/></svg>
+          <svg class="ikon-dur" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5.5h3.6v13H7zM13.4 5.5H17v13h-3.6z"/></svg>
+        </button>
+        <button type="button" class="dugme" id="sonraki" aria-label="Next">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6.5v11l8.5-5.5zM15.8 6H18v12h-2.2z"/></svg>
+        </button>
+        <button type="button" class="dugme" id="karisik" aria-label="Shuffle" aria-pressed="false">
+          <svg class="cizgi" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3.2c1.5 0 2.9.8 3.7 2l2.2 3.4c.8 1.3 2.2 2 3.7 2H20M4 17h3.2c1.5 0 2.9-.8 3.7-2l.5-.8M13.6 9.4c.8-1.3 2.2-2.4 3.7-2.4H20M17.2 4.4 20 7l-2.8 2.6M17.2 14.4 20 17l-2.8 2.6"/></svg>
+        </button>
+      </div>
+      <button type="button" class="radyo-gonder" id="radyo-gonder" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l15-7-5 15-2.6-6.4L4 12zM11.4 13.6 19 5"/></svg>
+        <span>Send to the gramophone</span>
+      </button>
+    </section>
+    <section class="liste-bolum" id="liste-bolum" data-acik="0" aria-labelledby="liste-baslik">
+      <h2 class="liste-ust">
+        <button type="button" id="liste-ac" aria-expanded="false" aria-controls="liste-icerik">
+          <span id="liste-baslik">Playlist</span><span id="liste-sayi"></span>
+          <svg class="ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+        </button>
+      </h2>
+      <div class="liste-icerik" id="liste-icerik">
+        <div class="liste-kip" role="group" aria-label="Which songs to play">
+          <button type="button" id="kip-hepsi" aria-pressed="true">All songs</button>
+          <button type="button" id="kip-benim" aria-pressed="false">My playlist <span id="benim-sayi"></span></button>
+          <button type="button" id="kip-radyo" aria-pressed="false">Radio</button>
+        </div>
+        <p class="liste-not" id="radyo-not" hidden>The gramophone composes these songs itself, new ones on every visit. Like one? Send it to the gramophone, free: it gets a name, an artist and a cover of its own, and everyone can play it.</p>
+        <p class="liste-not" id="liste-not" hidden>No songs have been uploaded yet, so the gramophone plays tunes it composes itself.</p>
+        <p class="liste-not" id="benim-bos" hidden>Your playlist is empty. Tap the heart next to a song to add it here.</p>
+        <ol class="liste" id="liste"></ol>
+      </div>
+    </section>
+    <footer class="panel-alt">
+      <button type="button" class="kayit-davet" id="panel-kayit">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg>
+        <span><strong>Got a song?</strong> The recording room is next door.</span>
+      </button>
+      <nav class="alt-bag" aria-label="About Gramofon">
+        <a href="/privacy">Privacy</a><span aria-hidden="true">·</span><a href="/terms">Terms</a><span aria-hidden="true">·</span><a href="mailto:gramofon@heylogram.com">gramofon@heylogram.com</a>
+      </nav>
+    </footer>
+  </aside>
+  <button type="button" class="pano-duvar" id="pano-duvar" aria-label="Open the playlist board" hidden><span class="pano-duvar-yazi" id="pano-duvar-yazi">Drop a token</span></button>
+  <section class="salon-kart" id="salon-kart" aria-label="Entrance hall">
+    <header class="baslik">
+      <h1>Gramofon</h1>
+      <p>Independent music, paid straight to the artists you play.</p>
+    </header>
+    <p class="salon-durum" id="salon-durum" hidden></p>
+    <div class="salon-tahta" id="salon-tahta" aria-live="polite" hidden><p class="st-baslik" id="st-baslik"></p><ul class="st-satirlar" id="st-satirlar"></ul></div>
+    <button type="button" class="gir-dugme" id="gir-gramofon">Enter the gramophone room</button>
+    <button type="button" class="gir-dugme ikincil" id="gir-kayit">Recording room (artists)</button>
+    <nav class="alt-bag" aria-label="About Gramofon">
+      <a href="/privacy">Privacy</a><span aria-hidden="true">·</span><a href="/terms">Terms</a><span aria-hidden="true">·</span><a href="mailto:gramofon@heylogram.com">gramofon@heylogram.com</a>
+    </nav>
+  </section>
+  <section class="konusma" id="konusma" aria-label="Talking with the man at the desk" hidden>
+    <div class="balon" id="balon">
+      <p class="balon-soz" id="balon-soz" aria-live="polite"></p>
+      <button type="button" class="balon-gec" id="balon-gec" aria-label="Next" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </section>
+  <div class="cevaplar" id="cevaplar" role="group" aria-label="Your answer" hidden></div>
+  <section class="yukleme-kart" id="yukleme-kart" aria-labelledby="yukleme-baslik" hidden>
+    <h2 id="yukleme-baslik">Your song</h2>
+    <form id="yukleme-form" novalidate>
+      <label class="alan">
+        <span class="alan-ad">Song file</span>
+        <input type="file" id="y-ses" accept="audio/*,.flac,.wav,.mp3,.m4a,.aac,.ogg,.aif,.aiff">
+        <span class="alan-not">FLAC, WAV, MP3, M4A or OGG, up to 200 MB. Lossless files are kept lossless.</span>
+      </label>
+      <label class="alan">
+        <span class="alan-ad">Cover art <em>(optional)</em></span>
+        <input type="file" id="y-kapak" accept="image/jpeg,image/png,image/webp">
+        <span class="alan-not">JPG or PNG. A square picture works best.</span>
+      </label>
+      <label class="alan"><span class="alan-ad">Song name</span><input type="text" id="y-ad" maxlength="80" autocomplete="off"></label>
+      <label class="alan"><span class="alan-ad">Artist name</span><input type="text" id="y-sanatci" maxlength="80" autocomplete="off"></label>
+      <label class="secim"><input type="checkbox" id="y-haber"><span>Email me when it's reviewed</span></label>
+      <label class="alan" id="y-eposta-alan" hidden><span class="alan-ad">Your email</span><input type="email" id="y-eposta" maxlength="120" autocomplete="email" inputmode="email"></label>
+      <label class="secim"><input type="checkbox" id="y-sahibim"><span>I made this song, or I own the rights to share it.</span></label>
+      <div class="yukleme-ilerleme" id="yukleme-ilerleme" hidden><div class="yukleme-dolu" id="yukleme-dolu"></div></div>
+      <p class="yukleme-durum" id="yukleme-durum" role="status" aria-live="polite"></p>
+      <button type="submit" class="gir-dugme" id="yukleme-gonder">Hand it over</button>
+    </form>
+  </section>
+  <aside class="kayit-bilgi" id="kayit-bilgi" aria-labelledby="kayit-bilgi-baslik">
+    <h2 id="kayit-bilgi-baslik">How it works</h2>
+    <ol>
+      <li>Pay a small fee in Bitcoin Cash. It covers reviewing and storing your song.</li>
+      <li>Hand over your song: FLAC, WAV, MP3, M4A or OGG.</li>
+      <li>It's checked right away, then listened to by hand. A released song needs proof that it's yours.</li>
+      <li>Watch for the result on the hall board, or get an email when it's reviewed.</li>
+    </ol>
+    <p>Made it yourself but it isn't a fit? We send the fee back. <a href="/terms">Terms</a></p>
+  </aside>
+</main>
+<script src="ag.js"></script>
+<script src="cizim/gramofon.js"></script>
+<script src="cizim/gramofon-tempo.js"></script>
+<script src="cizim/gramofon-analiz.js"></script>
+<script src="cizim/gramofon-muzik.js"></script>
+<script src="odeme/kapi.js"></script>
+<script src="uyelik.js"></script>
+<script src="oynatici.js"></script>
+<script src="uygulama.js"></script>
+<script src="kayit.js"></script>
+</body>
+</html>

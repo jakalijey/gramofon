@@ -1,0 +1,15 @@
+# never commit secrets or local files
+.env
+.env.*
+*.env
+*.key
+*.pem
+*.p12
+secrets/
+private/
+*-private*
+node_modules/
+*.exe
+*.log
+.DS_Store
+Thumbs.db

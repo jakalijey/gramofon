@@ -1,0 +1,12 @@
+Gramofon payment module (odeme.js) is a bundle that includes these open-source libraries:
+
+@wizardconnect/core 0.2.10 and @wizardconnect/dapp 0.2.7 (LGPL-3.0) - https://gitlab.com/riftenlabs/lib/wizardconnect
+@bitauth/libauth 3.1.0-next.8 (MIT) - https://github.com/bitauth/libauth
+@bch-wc2/interfaces 0.0.8 (MIT)
+@noble/ciphers 2.1.1, @noble/curves 2.0.1, @noble/hashes 2.0.1 (MIT) - https://github.com/paulmillr
+@scure/base 2.0.0, @scure/bip32 2.0.1, @scure/bip39 2.0.1 (MIT) - https://github.com/paulmillr
+nostr-tools 2.26.0 (Unlicense) - https://github.com/nbd-wtf/nostr-tools
+qrcode-generator 2.0.4 (MIT) - https://github.com/kazuhikoarase/qrcode-generator
+eventemitter3 5.0.4, lossless-json 4.3.3, isomorphic-ws 5.0.0 (MIT)
+
+The LGPL-3.0 libraries are used unmodified. To get the source of this bundle and rebuild it with your own copy of those libraries, write to gramofon@heylogram.com.
