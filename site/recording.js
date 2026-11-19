@@ -291,9 +291,15 @@
     var k = $("#yukleme-ilerleme");
     if (oran == null) {
       k.hidden = true;
+      k.classList.remove("belirsiz");
       return;
     }
     k.hidden = false;
+    if (oran === "bekle") {
+      k.classList.add("belirsiz");
+      return;
+    }
+    k.classList.remove("belirsiz");
     $("#yukleme-dolu").style.transform = "scaleX(" + Math.max(0, Math.min(1, oran)) + ")";
     if (oran < 1) durumYaz("Sending your song… " + Math.round(oran * 100) + "%");
   }
@@ -302,6 +308,7 @@
       x.disabled = kilit;
     });
     $("#yukleme-gonder").textContent = kilit ? "Sending…" : "Hand it over";
+    $("#yukleme-uyari").hidden = !kilit;
   }
   $("#y-haber").addEventListener("change", function() {
     $("#y-eposta-alan").hidden = !this.checked;
@@ -345,7 +352,8 @@
     }
     yukleniyor = true;
     formKilit(true);
-    ilerleme(0);
+    ilerleme("bekle");
+    durumYaz("Getting the desk ready…");
     var toplam = ses.size + (kapak ? kapak.size : 0);
     post("/yukle/baslat", { hak, ad, sanatci, haber, eposta: haber ? eposta : "", sahibim: true }).then(function(r) {
       if (r.durum === 401 || r.durum === 409) {
@@ -361,6 +369,7 @@
           ilerleme((ses.size + n) / toplam);
         }) : null;
       }).then(function() {
+        ilerleme("bekle");
         durumYaz("Almost there…");
         return post("/yukle/" + id + "/bitir", {}, hak);
       }).then(function(b) {
@@ -416,7 +425,10 @@
       x.upload.onprogress = function(e) {
         if (!e.lengthComputable) return;
         ilerle2(e.loaded);
-        if (e.loaded >= e.total) durumYaz(parca === "ses" ? "Got it. Putting your song away safely…" : "Saving the cover…");
+        if (e.loaded >= e.total) {
+          ilerleme("bekle");
+          durumYaz(parca === "ses" ? "Got it. Now saving your song and checking it. This can take a minute…" : "Saving the cover…");
+        }
       };
       x.onload = function() {
         var j = {};
@@ -450,7 +462,7 @@
     $("#yukleme-kart").hidden = true;
     sirayla([
       { s: "Thanks! We’ll give “" + ad + "” a proper listen.", adam: "inceliyor" },
-      haber ? "We’ll email you once it’s reviewed. You can also check the board in the hall to see if it’s approved." : "Check the board in the hall to see if it’s approved.",
+      haber ? "I’m emailing you a receipt now, and we’ll write again once it’s reviewed. You can also check the board in the hall." : "Check the board in the hall to see if it’s approved.",
       "Meanwhile, why not listen to some music next door?"
     ], [
       { yazi: "Go to the gramophone", is: kapidanGec },

@@ -1,6 +1,6 @@
 # Gramofon Privacy Policy
 
-Last updated: 16 November 2026
+Last updated: 19 November 2026
 
 Gramofon is a music app made by Heylogram. In short: you have no account with us, there are no cookies, no analytics and no ads. Your payment is a public Bitcoin Cash transaction.
 
@@ -16,7 +16,7 @@ A membership is paid with a normal Bitcoin Cash transaction. Like every transact
 
 When you hand a song to the man in the recording room, we receive the song file, its original file name, the cover picture if you add one, and the song name and artist name you type. They are stored in our private storage with Contabo in Europe so we can listen to the song.
 
-Your email address is optional. We ask for it only if you tick "Email me when it's reviewed", use it only to tell you the result, and delete it once that email is sent. The email comes from gramofon@heylogram.com.
+Your email address is optional. We ask for it only if you tick "Email me a receipt and the review result", and use it for two emails about your song: a receipt when it arrives, and the result once it's reviewed. We delete it once the result email is sent. Both come from gramofon@heylogram.com.
 
 When you hand in a song, our server makes an audio fingerprint of it: a short code that describes the sound, not the sound itself. We compare it with the fingerprints of songs already on Gramofon or handed in before. We keep the fingerprint even if the song is declined (the audio file itself is deleted), so the same recording is recognized if it's handed in again.
 

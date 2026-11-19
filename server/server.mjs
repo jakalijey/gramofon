@@ -593,6 +593,45 @@ function sesTuru(b) {
   if (s.startsWith("ID3") || b[0] === 255 && (b[1] & 224) === 224) return ["mp3", "audio/mpeg"];
   return null;
 }
+function komutCiktisi(komut, args, sure = 3e5) {
+  return new Promise((ok) => {
+    const p = spawn(komut, args, { stdio: ["ignore", "pipe", "ignore"] });
+    let o = "";
+    p.stdout.setEncoding("utf8");
+    p.stdout.on("data", (d) => {
+      o += d;
+    });
+    const zaman = setTimeout(() => p.kill("SIGKILL"), sure);
+    p.on("error", () => {
+      clearTimeout(zaman);
+      ok({ kod: -1, cikti: "" });
+    });
+    p.on("close", (kod) => {
+      clearTimeout(zaman);
+      ok({ kod, cikti: o });
+    });
+  });
+}
+const FLACA = /^(pcm_s16le|pcm_s16be|pcm_s24le|pcm_s24be|pcm_u8)$/;
+async function flacYap(kaynak) {
+  const p = await komutCiktisi("ffprobe", ["-v", "error", "-select_streams", "a:0", "-show_entries", "stream=codec_name", "-of", "csv=p=0", kaynak], 3e4);
+  if (p.kod !== 0 || !FLACA.test(p.cikti.trim())) return null;
+  const yol = kaynak + ".flac";
+  const sesOzeti = async (f) => (await komutCiktisi("ffmpeg", ["-v", "error", "-i", f, "-map", "0:a:0", "-c:a", "pcm_s32le", "-f", "md5", "-"])).cikti.trim();
+  try {
+    const c = await komutCiktisi("ffmpeg", ["-v", "error", "-y", "-i", kaynak, "-map", "0:a:0", "-map_metadata", "-1", "-c:a", "flac", "-compression_level", "8", "-f", "flac", yol]);
+    if (c.kod !== 0) throw new Error("flac");
+    const [a, b] = await Promise.all([sesOzeti(kaynak), sesOzeti(yol)]);
+    if (!/^MD5=[0-9a-f]{32}$/.test(a) || a !== b) throw new Error("flac ses farkı");
+    const ozet = crypto.createHash("sha256");
+    for await (const parca of fs.createReadStream(yol)) ozet.update(parca);
+    return { yol, boy: (await fs.promises.stat(yol)).size, ozet: ozet.digest("hex") };
+  } catch {
+    await fs.promises.rm(yol, { force: true }).catch(() => {
+    });
+    return null;
+  }
+}
 function resimTuru(b) {
   if (b[0] === 255 && b[1] === 216 && b[2] === 255) return ["jpg", "image/jpeg"];
   if (b.toString("latin1", 0, 8) === "PNG\r\n\n") return ["png", "image/png"];
@@ -652,13 +691,24 @@ async function dosyaKoy(req, res, id, parca) {
   if (e.durum !== "yukleniyor") return yanit(req, res, 409, { hata: "şarkı gönderildi" });
   if (yuklenen >= 2) return yanit(req, res, 503, { hata: "meşgul" });
   yuklenen++;
-  let gelen = null;
+  let gelen = null, flac = null;
   try {
     gelen = await dosyaAl(req, parca === "ses" ? SES_SINIR : KAPAK_SINIR);
-    const t = parca === "ses" ? sesTuru(gelen.bas) : resimTuru(gelen.bas);
+    let t = parca === "ses" ? sesTuru(gelen.bas) : resimTuru(gelen.bas);
     if (!t) return yanit(req, res, 415, { hata: parca === "ses" ? "ses dosyası değil" : "resim değil" });
-    const anahtar = `${KAYIT_ONEK}bekleyen/${id}/${parca}.${t[0]}`;
-    await depoKoy(anahtar, fs.createReadStream(gelen.yol), t[1], gelen.ozet, gelen.boy);
+    const ilk = t[0];
+    if (parca === "ses" && (ilk === "wav" || ilk === "aiff")) flac = await flacYap(gelen.yol);
+    if (flac) t = ["flac", "audio/flac"];
+    const giden = flac || gelen, anahtar = `${KAYIT_ONEK}bekleyen/${id}/${parca}.${t[0]}`;
+    for (let i = 1; ; i++) {
+      try {
+        await depoKoy(anahtar, fs.createReadStream(giden.yol), t[1], giden.ozet, giden.boy);
+        break;
+      } catch (h2) {
+        if (i >= 3) throw h2;
+        await new Promise((ok) => setTimeout(ok, 2e3 * i));
+      }
+    }
     if (parca === "ses") yolda.set(id, await izVaryantlar(gelen.yol));
     const eski = e[parca];
     let ad = "";
@@ -666,7 +716,7 @@ async function dosyaKoy(req, res, id, parca) {
       ad = temiz(decodeURIComponent(String(req.headers["x-dosya-adi"] || "")), 120);
     } catch {
     }
-    e[parca] = { anahtar, uz: t[0], tur: t[1], boy: gelen.boy, ozet: gelen.ozet, ad };
+    e[parca] = { anahtar, uz: t[0], tur: t[1], boy: giden.boy, ozet: giden.ozet, ad, ...flac ? { ilk: { uz: ilk, boy: gelen.boy } } : {} };
     await bekleyenYaz();
     if (eski && eski.anahtar !== anahtar) {
       const c = await depo("DELETE", eski.anahtar).catch(() => null);
@@ -677,7 +727,32 @@ async function dosyaKoy(req, res, id, parca) {
     yuklenen--;
     if (gelen) await fs.promises.rm(gelen.yol, { force: true }).catch(() => {
     });
+    if (flac) await fs.promises.rm(flac.yol, { force: true }).catch(() => {
+    });
   }
+}
+const SITE_ADRESI = "https://gramofon.heylogram.com";
+function makbuzYaz(e) {
+  const test = AG === "chipnet" ? " (test network)" : "";
+  const govde = [
+    `Hi ${e.sanatci},`,
+    "",
+    `Your song “${e.ad}” reached the recording room${test}. Thank you!`,
+    "",
+    e.durum === "kanit" ? "A song with this name and artist has already been released, so before it goes on the gramophone we need proof that it’s yours: an email from the artist’s official address, management, label or distributor, or a short code we give you, posted on the artist’s official account. Just reply to this email." : `We listen to every song by hand. We’ll email you again as soon as it’s reviewed, and you can follow it on the hall board at ${SITE_ADRESI}`,
+    "",
+    "About your fee: if it’s your own song and it isn’t a fit, we send the fee back to the wallet you paid from. Someone else’s song keeps the fee.",
+    "",
+    `Terms: ${SITE_ADRESI}/terms`,
+    `Privacy: ${SITE_ADRESI}/privacy`,
+    "We keep your email address only to tell you about this song, and delete it after the review email.",
+    "",
+    "Questions? Just reply to this email.",
+    "",
+    "Gramofon",
+    ""
+  ].join("\n");
+  return { durum: "bekliyor", zaman: simdiSn(), konu: `We got your song “${e.ad}”${test}`, govde };
 }
 async function yuklemeBitir(req, res, id) {
   const h = hakCoz(req.headers["x-hak"]);
@@ -695,6 +770,7 @@ async function yuklemeBitir(req, res, id) {
     e.kontrol = eslesen ? { tur: "iz", ad: eslesen.ad, sanatci: eslesen.sanatci, anahtar: eslesen.anahtar, benzerlik: eslesen.benzerlik } : yayinli ? { tur: "yayin", ad: yayinli.ad, sanatci: yayinli.sanatci, tarih: yayinli.tarih, mb: yayinli.id } : { tur: "temiz" };
     h.k.sarki = id;
     delete h.k.taslak;
+    if (e.haber && e.eposta && (e.durum === "inceleniyor" || e.durum === "kanit")) e.makbuz = makbuzYaz(e);
     if (v && v[0] && !e.deneme) {
       parmakizi.kayitlar["bekleyen:" + id] = {
         ad: e.ad,
@@ -858,6 +934,9 @@ async function yonetim(req, res, u) {
     }) });
   }
   if (req.method === "GET" && u.pathname === "/yonetim/parmakizi") return yanit(req, res, 200, parmakizi);
+  if (req.method === "GET" && u.pathname === "/yonetim/makbuzlar") {
+    return yanit(req, res, 200, { liste: bekleyen.liste.filter((e2) => e2.makbuz && e2.makbuz.durum === "bekliyor" && e2.eposta).map((e2) => ({ id: e2.id, eposta: e2.eposta, konu: e2.makbuz.konu, govde: e2.makbuz.govde })) });
+  }
   if (req.method !== "POST") return yanit(req, res, 405, { hata: "yöntem" });
   const g = await govdeOku(req, u.pathname === "/yonetim/parmakizi" ? 262144 : 16384);
   if (u.pathname === "/yonetim/parmakizi") {
@@ -912,6 +991,8 @@ async function yonetim(req, res, u) {
     e.bildirildi = simdiSn();
     e.eposta = "";
   }
+  if (g.makbuz === "yaz" && e.haber && e.eposta) e.makbuz = makbuzYaz(e);
+  if (g.makbuz === "gitti" || g.makbuz === "hata") e.makbuz = { durum: g.makbuz, zaman: simdiSn() };
   if (g.iade === true) {
     const k = kayitlar.txid[e.txid];
     if (!k || k.deneme || !ADRES_DESENI.test(k.kim || "")) return yanit(req, res, 400, { hata: "iade adresi yok" });
@@ -982,6 +1063,7 @@ const sunucu = http.createServer(async (req, res) => {
     if (kp) return await kapak(req, res, kp[1], kp[2]);
     yanit(req, res, 404, { hata: "yok" });
   } catch (e) {
+    if (!(e && e.kod)) console.error("hata", String(req.url || "").split("?")[0].replace(/[a-f0-9]{12}/g, "<id>").slice(0, 60), String(e && e.message || e).slice(0, 160));
     if (!res.headersSent) yanit(req, res, e && e.kod ? e.kod : 502, { hata: e && e.kod ? e.message : "sunucu" });
     else res.destroy();
   }

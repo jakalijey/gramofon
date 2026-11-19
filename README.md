@@ -18,7 +18,8 @@ Live: https://gramofon.heylogram.com · Test network (free Chipnet coins): https
   it gets a title, an artist name and a drawn cover of its own, and everyone can play it. These artists are made up and marked
   "from the radio".
 - **Bring your song.** In the recording room the man asks for a small review fee in BCH, takes your file (FLAC, WAV, MP3, M4A,
-  OGG), checks it against every song already handed in, and listens to it by hand. The hall board shows where your song is.
+  OGG), checks it against every song already handed in, and listens to it by hand. WAV and AIFF files are kept as FLAC, bit for
+  bit the same sound in less space. The hall board shows where your song is, and if you leave an email you get a receipt and the result.
 
 ## How it is built
 
