@@ -5,9 +5,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const src = readFileSync(new URL('../site/uygulama.js', import.meta.url), 'utf8');
+const src = readFileSync(new URL('../site/app.js', import.meta.url), 'utf8');
 const start = src.indexOf('var KAPAK_RENK'), end = src.indexOf('function radyoParca');
-assert.ok(start > 0 && end > start, 'radio identity code not found in site/uygulama.js');
+assert.ok(start > 0 && end > start, 'radio identity code not found in site/app.js');
 const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(src.slice(start, end) + '\nthis.identity = radyoKimlik; this.brand = KAPAK_RENK; this.bad = KOTU;', ctx);

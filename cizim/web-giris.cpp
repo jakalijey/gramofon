@@ -1,1 +1,0 @@
-#include "sahne.cpp"

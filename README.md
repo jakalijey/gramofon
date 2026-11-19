@@ -24,14 +24,17 @@ Live: https://gramofon.heylogram.com · Test network (free Chipnet coins): https
 
 | Part | Folder | Notes |
 |---|---|---|
-| Drawing core | `cizim/` | One C++17 file, compiled to WebAssembly with Emscripten (`build.sh`). Every frame of the hall, the rooms, the girl and the man is drawn by code, no image files. |
-| Site | `site/` | Plain HTML, CSS and JavaScript, no framework. The phone gets its own layout (portrait and landscape). |
-| Music | `site/cizim/gramofon-muzik.js` | The radio composer: the same seed always gives the same song, in the browser. |
-| Payments | `payment/` | Bitcoin Cash with libauth and WizardConnect, bundled with esbuild into `site/odeme/odeme.js`. |
+| Drawing core | `drawing/` | C++17 (`scene.cpp`; the girl in `girl.inc` and `girl-3d.inc`), compiled to WebAssembly with Emscripten (`build.sh`) into `site/engine/`. Every frame of the hall, the rooms, the girl and the man is drawn by code, no image files. |
+| Site | `site/` | Plain HTML, CSS and JavaScript, no framework: `app.js` runs the hall and the gramophone room, `recording.js` the recording room, `player.js` the music. The phone gets its own layout (portrait and landscape). |
+| Music | `site/engine/gramofon-music.js` | The radio composer: the same seed always gives the same song, in the browser. |
+| Payments | `payment/` | Bitcoin Cash with libauth and WizardConnect, bundled with esbuild into `site/payment/payment.js`. |
 | Server | `server/` | Node 22: song catalog, streaming with a membership ticket, payment checks, artist uploads, the radio list. |
 | Legal | `legal/` | Terms and privacy, published as `/terms` and `/privacy`. |
 
-Build the drawing core: `cd cizim && sh build.sh` (needs Emscripten). Build the payment bundle: `cd payment && npm install && npm run build`.
+Names inside the code (functions, variables, server messages) are in Turkish, the language Gramofon is written in. Everything a
+listener sees is in English.
+
+Build the drawing core: `cd drawing && sh build.sh` (needs Emscripten). Build the payment bundle: `cd payment && npm install && npm run build`.
 Serve `site/` with any static web server. Run the tests with `npm test` (Node 22, no packages needed); every push runs them
 on GitHub, and rebuilds the drawing core from source to check it matches the committed build.
 
@@ -44,5 +47,5 @@ Contact: gramofon@heylogram.com
 
 ## License
 
-© 2026 Heylogram. All rights reserved. Third-party libraries inside `site/odeme/odeme.js` keep their own licenses, listed in
-`site/odeme/odeme.js.LEGAL.txt`.
+© 2026 Heylogram. All rights reserved. Third-party libraries inside `site/payment/payment.js` keep their own licenses, listed in
+`site/payment/payment.js.LEGAL.txt`.

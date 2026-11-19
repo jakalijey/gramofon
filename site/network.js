@@ -19,6 +19,5 @@
     anahtar: function(k) {
       return test ? k + "-test" : k;
     }
-    // tarayıcı hafızasında test kayıtları gerçeklerle karışmasın
   };
 })();

@@ -794,8 +794,8 @@ static void boru() {
 struct Yer { float s, ox, oy; };
 static Yer yerAc(float gx, float gy, float k) { Yer e{S, OX, OY}; OX = OX + gx * S; OY = OY + gy * S; S = S * k; return e; }
 static void yerKapa(Yer e) { S = e.s; OX = e.ox; OY = e.oy; }
-#include "kiz.inc"
-#include "uc.inc"
+#include "girl.inc"
+#include "girl-3d.inc"
 
 static void jeton(double t) {
     float u = jetonBas >= 0 ? (float)(t - jetonBas) : -1;

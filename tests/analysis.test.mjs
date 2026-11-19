@@ -6,7 +6,7 @@ import vm from 'node:vm';
 
 const ctx = { window: {} };
 vm.createContext(ctx);
-for (const f of ['gramofon-tempo.js', 'gramofon-analiz.js']) vm.runInContext(readFileSync(new URL('../site/cizim/' + f, import.meta.url), 'utf8'), ctx);
+for (const f of ['gramofon-tempo.js', 'gramofon-analysis.js']) vm.runInContext(readFileSync(new URL('../site/engine/' + f, import.meta.url), 'utf8'), ctx);
 const A = ctx.window.GramofonAnaliz;
 
 test('mood classes', () => {

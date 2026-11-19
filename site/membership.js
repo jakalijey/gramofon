@@ -19,8 +19,6 @@
   }
   window.GramofonUyelik = {
     fiyatUsd: 0.01,
-    // Dinleme bileti: sunucu (api.heylogram.com/gramofon) şarkıyı yalnız geçerli biletle verir. Bileti ödeme katmanı verir;
-    // yerel denemede ?deneme=1&bilet=<yönetici aracının ürettiği bilet> ile gelir (yalnız localhost).
     bilet: function() {
       if (deneme) {
         try {

@@ -33,7 +33,7 @@ const sha = (v) => crypto.createHash("sha256").update(v).digest("hex");
 const hm = (k, v) => crypto.createHmac("sha256", k).update(v).digest();
 const BOS = sha("");
 function imzali(yontem, yol, ozet = BOS) {
-  const t = (/* @__PURE__ */ new Date()).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const t = (new Date()).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
   const gun = t.slice(0, 8);
   const b = { host: HOST, "x-amz-content-sha256": ozet, "x-amz-date": t };
   const adlar = Object.keys(b).sort();
@@ -129,7 +129,7 @@ const disari = (s) => Object.fromEntries(GUVENLI.filter((k) => s[k] != null).map
 const SES_KLASORU = path.join(VERI, "onbellek");
 const SES_SINIRI = Number(E.SES_ONBELLEK_MB || 2048) * 1048576;
 const SES_TURU = { flac: "audio/flac", mp3: "audio/mpeg", m4a: "audio/mp4", aac: "audio/aac", ogg: "audio/ogg", opus: "audio/ogg", wav: "audio/wav" };
-const iniyor = /* @__PURE__ */ new Set();
+const iniyor = new Set();
 try {
   fs.mkdirSync(SES_KLASORU, { recursive: true });
   for (const a of fs.readdirSync(SES_KLASORU)) if (a.startsWith(".")) fs.rmSync(path.join(SES_KLASORU, a), { force: true });
@@ -172,7 +172,7 @@ function diskten(req, res, dosya) {
     res.end();
     return true;
   }
-  fs.utimes(yol, /* @__PURE__ */ new Date(), st.mtime, () => {
+  fs.utimes(yol, new Date(), st.mtime, () => {
   });
   fs.createReadStream(yol, { start: bas, end: son }).on("error", () => res.destroy()).pipe(res);
   return true;
@@ -546,7 +546,7 @@ async function tamamla(req, res) {
       return yanit(req, res, 400, { hata: "ağ reddetti", detay: String(y.hata).split("\n")[0].slice(0, 160) });
     }
   }
-  const gorenler = /* @__PURE__ */ new Set();
+  const gorenler = new Set();
   for (const s of [...ELECTRUM].sort(() => Math.random() - 0.5)) {
     if (gorenler.has(isletme(s.h))) continue;
     try {
@@ -727,7 +727,7 @@ const IZ_SUZGEC = [null, "atempo=0.94", "atempo=0.97", "atempo=1.03", "atempo=1.
 );
 const PC16 = new Uint8Array(65536);
 for (let i = 1; i < 65536; i++) PC16[i] = PC16[i >> 1] + (i & 1);
-const yolda = /* @__PURE__ */ new Map(), izOnbellek = /* @__PURE__ */ new Map();
+const yolda = new Map(), izOnbellek = new Map();
 function izCikar(dosya, suzgec) {
   return new Promise((ok) => {
     const komut = suzgec ? `ffmpeg -v error -i "$1" -map 0:a:0 -af "${suzgec}" -f wav - | fpcalc -raw -length 0 -` : 'fpcalc -raw -length 0 "$1"';

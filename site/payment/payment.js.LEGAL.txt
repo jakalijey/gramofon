@@ -1,4 +1,4 @@
-Gramofon payment module (odeme.js) is a bundle that includes these open-source libraries:
+Gramofon payment module (payment.js) is a bundle that includes these open-source libraries:
 
 @wizardconnect/core 0.2.10 and @wizardconnect/dapp 0.2.7 (LGPL-3.0) - https://gitlab.com/riftenlabs/lib/wizardconnect
 @bitauth/libauth 3.1.0-next.8 (MIT) - https://github.com/bitauth/libauth

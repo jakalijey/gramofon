@@ -6,7 +6,7 @@ import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
-const BUILT = new Set(['site/odeme/odeme.js', 'site/cizim/gramofon-cekirdek.js']);
+const BUILT = new Set(['site/payment/payment.js', 'site/engine/gramofon-core.js']);
 
 function scripts(dir) {
   const out = [];

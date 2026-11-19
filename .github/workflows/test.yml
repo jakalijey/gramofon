@@ -24,11 +24,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Keep the committed build
-        run: cp site/cizim/gramofon-cekirdek.wasm /tmp/committed.wasm && cp site/cizim/gramofon-cekirdek.js /tmp/committed.js
+        run: cp site/engine/gramofon-core.wasm /tmp/committed.wasm && cp site/engine/gramofon-core.js /tmp/committed.js
       - name: Build the drawing core from source
-        run: cd cizim && sh build.sh
+        run: cd drawing && sh build.sh
       - name: The committed build matches the source
         run: |
-          sha256sum /tmp/committed.wasm site/cizim/gramofon-cekirdek.wasm
-          cmp /tmp/committed.wasm site/cizim/gramofon-cekirdek.wasm
-          cmp /tmp/committed.js site/cizim/gramofon-cekirdek.js
+          sha256sum /tmp/committed.wasm site/engine/gramofon-core.wasm
+          cmp /tmp/committed.wasm site/engine/gramofon-core.wasm
+          cmp /tmp/committed.js site/engine/gramofon-core.js

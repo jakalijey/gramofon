@@ -5,12 +5,12 @@
     return new Promise(function(ok, hata) {
       if (window.GramofonCekirdek) return ok();
       var s = document.createElement("script");
-      s.src = taban + "gramofon-cekirdek.js";
+      s.src = taban + "gramofon-core.js";
       s.onload = function() {
         ok();
       };
       s.onerror = function() {
-        hata(new Error("gramofon-cekirdek.js yüklenemedi"));
+        hata(new Error("gramofon-core.js yüklenemedi"));
       };
       document.head.appendChild(s);
     });
@@ -236,7 +236,7 @@
         bas = acilis = performance.now();
         calisiyor = true;
         if (M._gr_saat) {
-          var d = /* @__PURE__ */ new Date();
+          var d = new Date();
           M._gr_saat(d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1e3);
         }
         kare = requestAnimationFrame(dongu);
@@ -316,11 +316,9 @@
       darMi = !!ac;
       if (M && M._gr_dar) M._gr_dar(ac ? 1 : 0);
     },
-    // telefon: çekim sahnenin oranına göre (dik / yatay)
     panelSag: function(f) {
       if (M && M._gr_panel_sag) M._gr_panel_sag(+f || 0);
     },
-    // yatay telefonda pano yaprağının sağ kenarı (tuvale oranla; 0 çizimdeki pano)
     kalite: function(i) {
       zorla = i == null || i < 0 ? -1 : Math.min(BASAMAK.length - 1, i | 0);
     },
@@ -330,7 +328,6 @@
       });
       return { is: Math.round(sonIs * 10) / 10, ciz: Math.round(cizIs * 10) / 10, orta: h.length ? Math.round(h[h.length >> 1]) : 0, enCok: h.length ? Math.round(h[h.length - 1]) : 0, kare: h.length, tuval: [W, H], basamak: zorla >= 0 ? zorla : basamak, kilit };
     },
-    // çizim çekirdeğinin işi (ms; son 120 kare): ölçüm için
     pano: function(baslik, satirlar) {
       if (!M) return;
       panoKoy(6, baslik, 0, true);
@@ -388,7 +385,6 @@
     tempo: function(periyot, gecen) {
       if (M) M._gr_tempo(periyot, gecen == null ? 0 : gecen);
     },
-    // gecen < 0: yalnız tempo değişir, vuruş yeri ellenmez
     don: function(derece) {
       if (M) M._gr_don(derece);
     },

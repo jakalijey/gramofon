@@ -6,7 +6,7 @@ import vm from 'node:vm';
 
 const ctx = { window: {} };
 vm.createContext(ctx);
-vm.runInContext(readFileSync(new URL('../site/cizim/gramofon-tempo.js', import.meta.url), 'utf8'), ctx);
+vm.runInContext(readFileSync(new URL('../site/engine/gramofon-tempo.js', import.meta.url), 'utf8'), ctx);
 const { coz } = ctx.window.GramofonTempo;
 
 function envelope(bpm, seconds = 10, hz = 50) {

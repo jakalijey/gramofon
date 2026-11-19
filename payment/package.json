@@ -2,9 +2,9 @@
   "name": "gramofon-payment",
   "private": true,
   "type": "module",
-  "description": "Gramofon payment layer (Bitcoin Cash, WizardConnect). Output: ../site/odeme/odeme.js",
+  "description": "Gramofon payment layer (Bitcoin Cash, WizardConnect). Output: ../site/payment/payment.js",
   "scripts": {
-    "build": "esbuild src/odeme.mjs --bundle --format=esm --target=es2022 --minify --outfile=../site/odeme/odeme.js"
+    "build": "esbuild src/payment.mjs --bundle --format=esm --target=es2022 --minify --outfile=../site/payment/payment.js"
   },
   "dependencies": {
     "@bitauth/libauth": "^3.1.0-next.8",

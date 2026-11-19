@@ -68,7 +68,7 @@
   function agirYukle() {
     if (window.GramofonOdemeAgir) return Promise.resolve(window.GramofonOdemeAgir);
     if (agir) return agir;
-    agir = import((kapiAdresi || location.href).replace(/kapi\.js.*$/, "") + "odeme.js").then(function() {
+    agir = import((kapiAdresi || location.href).replace(/gate\.js.*$/, "") + "payment.js").then(function() {
       if (!window.GramofonOdemeAgir) throw new Error("The payment module did not load.");
       return window.GramofonOdemeAgir;
     }, function() {
@@ -113,7 +113,6 @@
         } }, bilgi);
       });
     },
-    // Şarkı yükleme ücreti: Promise<{ hak, bitis }>. Ödenmiş, kullanılmamış hak varsa yeniden ödetmez.
     yuklemeAl: function(bilgi) {
       bilgi = bilgi || function() {
       };
@@ -133,11 +132,9 @@
     yuklemeHakki: function() {
       return gecerliHak();
     },
-    // { hak, bitis, txid } ya da null
     yuklemeHakkiSil: function() {
       yaz(HAK, null);
     }
-    // şarkı gönderildi (ya da sunucu hakkı tanımadı)
   };
   function hakVarMi() {
     var h = gecerliHak();
