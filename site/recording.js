@@ -282,9 +282,10 @@
     else $("#y-ses").focus({ preventScroll: true });
   }
   function durumYaz(m, tur) {
-    var d = $("#yukleme-durum");
+    var d = $("#yukleme-durum"), k = $("#yukleme-kart");
     d.textContent = m || "";
     d.dataset.tur = tur || "";
+    if (m) k.scrollTop = k.scrollHeight;
   }
   function ilerleme(oran) {
     var k = $("#yukleme-ilerleme");

@@ -75,14 +75,12 @@
     p.style.transform = "scale(" + k.toFixed(4) + ")";
   }
   function olcekKur() {
-    var d = $(".duzen"), masa = !dikMi.matches && !yatayMi.matches, tv = $("#tuval");
+    var d = $(".duzen"), kok = document.documentElement, masa = !dikMi.matches && !yatayMi.matches, tv = $("#tuval"), s = $("#test-serit");
     d.classList.toggle("masaustu", masa);
-    if (!masa) {
-      d.style.removeProperty("--o");
-      return;
-    }
-    var w = tv.clientWidth || innerWidth, h = tv.clientHeight || innerHeight;
-    d.style.setProperty("--o", Math.min(w / 1280, h / 620).toFixed(4));
+    kok.classList.toggle("masaustu", masa);
+    if (masa) kok.style.setProperty("--o", Math.min((tv.clientWidth || innerWidth) / 1280, (tv.clientHeight || innerHeight) / 620).toFixed(4));
+    else kok.style.removeProperty("--o");
+    kok.style.setProperty("--serit", (s && !s.hidden ? Math.ceil(s.getBoundingClientRect().bottom) : 0) + "px");
   }
   function duvarDugmesi() {
     var b = $("#pano-duvar"), y = panoVar && !panoAcik && Gramofon.panelYeri ? Gramofon.panelYeri() : null;

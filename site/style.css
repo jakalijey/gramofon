@@ -241,11 +241,11 @@ button { font: inherit; color: inherit; }
 @media (min-width: 900px), (orientation: landscape) and (max-height: 500px) { .duzen.geciste .konusma, .duzen.geciste .cevaplar, .duzen.geciste .yukleme-kart { display: none !important; } }
 @media (max-width: 899px) and (orientation: portrait), (max-width: 899px) and (min-height: 501px) { .salon-karsilama { display: none !important; } }
 .salona-don {
-  position: absolute; z-index: 2; top: 14px; left: 14px; display: inline-flex; align-items: center; gap: 4px; min-height: 44px;
+  position: absolute; z-index: 2; top: calc(var(--serit, 0px) + 14px); left: 14px; display: inline-flex; align-items: center; gap: 4px; min-height: 44px;
   padding: 0 14px 0 8px; border: 0; border-radius: 22px; background: rgba(245, 239, 225, .92); color: var(--murekkep);
   font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(18, 10, 36, .35);
 }
-@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) { .salona-don { top: 8px; left: 8px; min-height: 38px; } }
+@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) { .salona-don { top: calc(var(--serit, 0px) + 8px); left: 8px; min-height: 38px; } }
 .salona-don svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .salona-don:focus-visible { outline: 2px solid var(--kehribar); outline-offset: 2px; }
 
@@ -325,7 +325,7 @@ button { font: inherit; color: inherit; }
 .duzen.masaustu.panoda .liste-icerik::-webkit-scrollbar { width: 6px; }
 .duzen.masaustu.panoda .liste-icerik::-webkit-scrollbar-thumb { background: rgba(26, 13, 46, .28); border-radius: 3px; }
 .duzen.masaustu.panoda .liste { flex: none; min-height: 0; overflow: visible; }
-.duzen.masaustu .salona-don { top: calc(12px * var(--o, 1)); left: calc(12px * var(--o, 1)); min-height: 40px; transform: scale(var(--o, 1)); transform-origin: 0 0; }
+.duzen.masaustu .salona-don { top: calc(var(--serit, 0px) + 12px * var(--o, 1)); left: calc(12px * var(--o, 1)); min-height: 40px; transform: scale(var(--o, 1)); transform-origin: 0 0; }
 .duzen.masaustu.panoda .salona-don { left: calc(29.7% + 12px * var(--o, 1)); }
 .duzen.masaustu .pano-duvar-yazi { font-size: 14px; transform: translateX(-50%) scale(var(--o, 1)); transform-origin: 50% 100%; }
 .duzen.masaustu .salon-karsilama { font-size: 14.5px; max-width: min(calc(92% / var(--o, 1)), 860px); transform: translateX(-50%) scale(var(--o, 1)); transform-origin: 50% 100%; }
@@ -335,9 +335,14 @@ button { font: inherit; color: inherit; }
 .duzen.masaustu .balon-soz { font-size: 16px; }
 .duzen.masaustu .cevaplar { max-width: min(calc(92% / var(--o, 1)), 860px); transform: translateX(-50%) scale(var(--o, 1)); transform-origin: 50% 100%; }
 .duzen.masaustu .yukleme-kart {
-  left: calc(28px * var(--o, 1)); top: calc(72px * var(--o, 1)); width: 340px;
-  max-height: calc((100% - 100px * var(--o, 1)) / var(--o, 1)); transform: scale(var(--o, 1)); transform-origin: 0 0;
+  left: calc(28px * var(--o, 1)); top: calc(var(--serit, 0px) + 64px * var(--o, 1)); width: 340px; padding: 16px 18px 14px;
+  max-height: calc((100% - var(--serit, 0px) - 84px * var(--o, 1)) / var(--o, 1)); transform: scale(var(--o, 1)); transform-origin: 0 0;
 }
+.duzen.masaustu .yukleme-kart h2 { margin-bottom: 8px; font-size: 22px; }
+.duzen.masaustu .yukleme-kart form { gap: 8px; }
+.duzen.masaustu .yukleme-kart .alan input[type="text"], .duzen.masaustu .yukleme-kart .alan input[type="email"] { min-height: 38px; padding: 6px 10px; }
+.duzen.masaustu .yukleme-durum:empty { display: none; }
+.duzen.masaustu .yukleme-kart .gir-dugme { min-height: 48px; }
 
 @media (min-width: 900px), (orientation: landscape) and (max-height: 500px) { .duzen.bekliyor .salon-kart, .duzen.bekliyor .panel { visibility: hidden; } }
 .duzen.panoda .parca { padding: 7px 12px; }
@@ -388,7 +393,7 @@ button { font: inherit; color: inherit; }
   :root { --yaprak: clamp(300px, 36vw, 360px); }
   .duzen.panoda .panel {
     left: 0; top: 0; bottom: 0; width: var(--yaprak); height: auto; max-height: none; transform: none;
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px)); gap: 12px;
+    padding: calc(12px + var(--serit, 0px)) 16px calc(12px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px)); gap: 12px;
     background: var(--yuzey); border: 0; border-right: 2px solid var(--kehribar); border-radius: 0 18px 18px 0;
     box-shadow: inset -5px 0 0 var(--yuzey), inset -6px 0 0 rgba(217, 119, 6, .45), 0 0 44px rgba(18, 10, 36, .55);
     overflow-y: auto; overscroll-behavior: contain;
@@ -432,4 +437,15 @@ html.tam-kilit, html.tam-kilit body { overflow: hidden; }
   font-size: 13px; text-align: center; box-shadow: 0 4px 14px rgba(18, 10, 36, .35);
 }
 .test-serit a { color: var(--murekkep); font-weight: 700; }
+html.masaustu .test-serit { max-width: calc((100% - 24px) / var(--o, 1)); transform: translateX(-50%) scale(var(--o, 1)); transform-origin: 50% 0; }
+
+html .odeme-ort { padding-top: calc(var(--serit, 0px) + 16px); }
+html .odeme-ort .odeme-kutu { max-height: calc(100dvh - 32px - var(--serit, 0px)); }
+html.masaustu .odeme-ort { display: block; padding: 0; }
+html.masaustu .odeme-ort .odeme-kutu {
+  position: absolute; left: 50%; top: calc(50% + var(--serit, 0px) / 2); width: 440px; padding: 20px 22px;
+  max-height: calc((100% - var(--serit, 0px) - 32px * var(--o, 1)) / var(--o, 1)); transform: translate(-50%, -50%) scale(var(--o, 1));
+}
+html.masaustu .odeme-ort .odeme-qr { width: 232px; margin: 4px auto 14px; }
+html.masaustu .odeme-ort .odeme-qr svg { width: 208px; max-width: none; }
 @media (prefers-reduced-motion: reduce) { .jeton.dikkat { animation: none; } .liste-ust .ok { transition: none; } }
