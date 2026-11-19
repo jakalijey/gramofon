@@ -393,11 +393,13 @@ async function teklifVer(req, res) {
   if (!ODEME_ADRESI || !BILET_SIRRI) return yanit(req, res, 503, { hata: "ödeme kapalı" });
   const g = await govdeOku(req);
   const yukleme = g.amac === "yukleme";
+  const link = g.yol === "link";
   const fiyat = yukleme ? YUKLEME_USD : UYELIK_USD;
   const usd = await bchUsd();
-  const sat = Math.max(546, Math.ceil(fiyat / usd * 1e8));
-  const bitis = Math.floor(Date.now() / 1e3) + 600;
-  const teklif = imzalaPaket("teklif:", { s: sat, b: bitis, n: crypto.randomBytes(8).toString("hex"), ...yukleme ? { a: "y" } : {} });
+  let sat = Math.max(546, Math.ceil(fiyat / usd * 1e8));
+  const bitis = Math.floor(Date.now() / 1e3) + (link ? 900 : 600);
+  if (link) sat = linkTutari(sat, bitis);
+  const teklif = imzalaPaket("teklif:", { s: sat, b: bitis, n: crypto.randomBytes(8).toString("hex"), ...yukleme ? { a: "y" } : {}, ...link ? { l: 1 } : {} });
   yanit(req, res, 200, {
     amac: yukleme ? "yukleme" : "uyelik",
     usd: fiyat,
@@ -408,6 +410,95 @@ async function teklifVer(req, res) {
     gecerli: bitis,
     teklif
   });
+}
+const linkTutarlar = new Map();
+function linkTutari(taban, bitis) {
+  const simdi = Math.floor(Date.now() / 1e3);
+  for (const [s, b] of linkTutarlar) if (b + 1800 < simdi) linkTutarlar.delete(s);
+  for (let i = 0; i < 200; i++) {
+    const s = taban + 1 + crypto.randomInt(999);
+    if (!linkTutarlar.has(s)) {
+      linkTutarlar.set(s, bitis);
+      return s;
+    }
+  }
+  throw kodlu(503, "meşgul");
+}
+let linkTarama = null;
+const linkBakilan = new Map();
+function adresTara() {
+  if (linkTarama && Date.now() - linkTarama.zaman < 3e3) return linkTarama.iz;
+  const iz = (async () => {
+    const { cevap } = await electrumBiri([["blockchain.address.get_history", [ODEME_ADRESI]]]);
+    const gecmis = (cevap[0] && cevap[0].sonuc || []).slice(-40).map((x) => x.tx_hash).filter((t) => /^[0-9a-f]{64}$/.test(t));
+    const yeni = gecmis.filter((t) => !linkBakilan.has(t) && !kayitlar.txid[t]);
+    if (yeni.length) {
+      const { cevap: c } = await electrumBiri(yeni.map((t) => ["blockchain.transaction.get", [t, true]]));
+      yeni.forEach((t, i) => {
+        if (c[i] && c[i].sonuc) linkBakilan.set(t, { tutar: odemeyiBul(c[i].sonuc), tx: c[i].sonuc });
+      });
+    }
+    const tutarlar = new Map();
+    for (const t of gecmis) {
+      const b = linkBakilan.get(t);
+      if (b && !kayitlar.txid[t] && !tutarlar.has(b.tutar)) tutarlar.set(b.tutar, t);
+    }
+    return tutarlar;
+  })();
+  linkTarama = { zaman: Date.now(), iz };
+  iz.catch(() => {
+    linkTarama = null;
+  });
+  return iz;
+}
+async function odeyenAdres(tx) {
+  try {
+    const g = (tx.vin || [])[0];
+    if (!g || !/^[0-9a-f]{64}$/.test(g.txid || "")) return "";
+    const { cevap } = await electrumBiri([["blockchain.transaction.get", [g.txid, true]]]);
+    const o = (cevap[0] && cevap[0].sonuc && cevap[0].sonuc.vout || [])[g.vout] || {};
+    const a = ((o.scriptPubKey || {}).addresses || [])[0] || (o.scriptPubKey || {}).address || "";
+    return ADRES_DESENI.test(a) ? a : "";
+  } catch {
+    return "";
+  }
+}
+async function linkKontrol(req, res) {
+  if (!ODEME_ADRESI || !BILET_SIRRI) return yanit(req, res, 503, { hata: "ödeme kapalı" });
+  const g = await govdeOku(req);
+  const t = paketCoz("teklif:", g.teklif);
+  if (!t || t.l !== 1) return yanit(req, res, 400, { hata: "eksik" });
+  const verilen = (txid2) => {
+    const k = kayitlar.txid[txid2];
+    if (k.amac === "y") return yanit(req, res, 200, { hak: hakVer(txid2, k), bitis: k.bitis, txid: txid2, kullanildi: !!k.sarki });
+    return yanit(req, res, 200, { bilet: imzalaPaket("", { u: k.kim, b: k.bitis }), bitis: k.bitis, txid: txid2, kim: k.kim });
+  };
+  if (kayitlar.teklif[t.n] && kayitlar.txid[kayitlar.teklif[t.n]]) return verilen(kayitlar.teklif[t.n]);
+  const simdi = Math.floor(Date.now() / 1e3);
+  if (simdi > t.b + 1800) return yanit(req, res, 410, { hata: "süre doldu" });
+  const txid = (await adresTara()).get(t.s);
+  if (!txid) return yanit(req, res, 202, { hata: "ödeme henüz yok" });
+  const gorenler = new Set();
+  for (const s of [...ELECTRUM].sort(() => Math.random() - 0.5)) {
+    if (gorenler.has(isletme(s.h))) continue;
+    try {
+      const [c] = await electrum(s, [["blockchain.transaction.get", [txid, true]]]);
+      if (c && c.sonuc && odemeyiBul(c.sonuc) === t.s) gorenler.add(isletme(s.h));
+    } catch {
+    }
+    if (gorenler.size >= 2) break;
+  }
+  if (gorenler.size < 2) return yanit(req, res, 202, { hata: "ödeme henüz görülmedi", gorenler: gorenler.size });
+  const kim = await odeyenAdres(linkBakilan.get(txid).tx);
+  if (kayitlar.teklif[t.n] && kayitlar.txid[kayitlar.teklif[t.n]]) return verilen(kayitlar.teklif[t.n]);
+  if (kayitlar.txid[txid]) return yanit(req, res, 409, { hata: "bu ödeme kullanıldı" });
+  const yukleme = t.a === "y";
+  const bitis = simdi + (yukleme ? YUKLEME_GUN : UYELIK_GUN) * 86400;
+  kayitlar.txid[txid] = { kim, sat: t.s, zaman: simdi, bitis, n: t.n, yol: "link", ...yukleme ? { amac: "y" } : {} };
+  kayitlar.teklif[t.n] = txid;
+  linkTutarlar.delete(t.s);
+  await kayitYaz();
+  verilen(txid);
 }
 const hakVer = (txid, k) => imzalaPaket("hak:", { t: txid, b: k.bitis });
 async function utxoVer(req, res) {
@@ -1036,6 +1127,7 @@ const sunucu = http.createServer(async (req, res) => {
       if (u.pathname === "/odeme/teklif") return await teklifVer(req, res);
       if (u.pathname === "/odeme/utxo") return await utxoVer(req, res);
       if (u.pathname === "/odeme/tamamla") return await tamamla(req, res);
+      if (u.pathname === "/odeme/link") return await linkKontrol(req, res);
       if (u.pathname === "/yukle/baslat") return await yuklemeBaslat(req, res);
       if (u.pathname === "/radyo/gonder") return await radyoGonder(req, res);
       const yb = /^\/yukle\/([a-f0-9]{12})\/bitir$/.exec(u.pathname);
