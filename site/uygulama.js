@@ -42,8 +42,8 @@
     if (tur === "hata" && panoVar && !panoAcik) panoAc(true);
   }
   var dikMi = window.matchMedia("(max-width: 899px) and (orientation: portrait), (max-width: 899px) and (min-height: 501px)");
-  var yatayMi = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
-  var telefonMu = window.matchMedia("(max-width: 899px), (orientation: landscape) and (max-height: 500px)"), panoSaat = 0, duvarSaat = 0;
+  var yatayMi = window.matchMedia("(orientation: landscape) and (max-height: 500px) and (pointer: coarse)");
+  var telefonMu = window.matchMedia("(max-width: 899px) and (orientation: portrait), (max-width: 899px) and (min-height: 501px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse)"), panoSaat = 0, duvarSaat = 0;
   function yaprakOrani() {
     var w = $("#tuval").clientWidth || innerWidth;
     return Math.min(360, Math.max(300, innerWidth * 0.36)) / w;
@@ -58,6 +58,7 @@
     var p = $(".panel");
     p.style.left = p.style.top = p.style.width = p.style.height = p.style.transform = "";
   }
+  var PANO_EN = 340, PANO_BOY = 570;
   function panelYerlestir() {
     var p = $(".panel"), a = panoVar && panoAcik ? Gramofon.panelAlani() : null;
     if (!a) return;
@@ -65,19 +66,23 @@
       panelKonumSil();
       return;
     }
-    var tv = $("#tuval"), w = a.w * tv.clientWidth, h = a.h * tv.clientHeight;
-    p.style.transform = "";
+    var tv = $("#tuval"), w = a.w * tv.clientWidth, h = a.h * tv.clientHeight, k = Math.min(w / PANO_EN, h / PANO_BOY);
+    if (!(k > 0)) return;
     p.style.left = a.x * 100 + "%";
     p.style.top = a.y * 100 + "%";
-    p.style.width = w + "px";
-    p.style.height = h + "px";
-    var L = $("#liste"), gorunen = L.clientHeight, istenen = Math.min(L.scrollHeight, 156);
-    var gerek = h + Math.max(0, p.scrollHeight - p.clientHeight) + Math.max(0, istenen - gorunen), k = Math.max(0.5, Math.min(1, h / gerek));
-    if (k < 0.995) {
-      p.style.width = w / k + "px";
-      p.style.height = h / k + "px";
-      p.style.transform = "scale(" + k.toFixed(4) + ")";
+    p.style.width = w / k + "px";
+    p.style.height = h / k + "px";
+    p.style.transform = "scale(" + k.toFixed(4) + ")";
+  }
+  function olcekKur() {
+    var d = $(".duzen"), masa = !dikMi.matches && !yatayMi.matches, tv = $("#tuval");
+    d.classList.toggle("masaustu", masa);
+    if (!masa) {
+      d.style.removeProperty("--o");
+      return;
     }
+    var w = tv.clientWidth || innerWidth, h = tv.clientHeight || innerHeight;
+    d.style.setProperty("--o", Math.min(w / 1280, h / 620).toFixed(4));
   }
   function duvarDugmesi() {
     var b = $("#pano-duvar"), y = panoVar && !panoAcik && Gramofon.panelYeri ? Gramofon.panelYeri() : null;
@@ -499,6 +504,12 @@
     if (dikMi.addEventListener) dikMi.addEventListener("change", f);
     else if (dikMi.addListener) dikMi.addListener(f);
   })();
+  olcekKur();
+  window.addEventListener("resize", olcekKur);
+  [dikMi, yatayMi].forEach(function(m) {
+    if (m.addEventListener) m.addEventListener("change", olcekKur);
+    else if (m.addListener) m.addListener(olcekKur);
+  });
   if (window.Gramofon) {
     Gramofon.kur($("#tuval")).then(function() {
       cizimHazir = true;

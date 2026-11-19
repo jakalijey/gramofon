@@ -102,12 +102,12 @@
           <svg class="ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
         </button>
       </h2>
+      <div class="liste-kip" role="group" aria-label="Which songs to play">
+        <button type="button" id="kip-hepsi" aria-pressed="true">All songs</button>
+        <button type="button" id="kip-benim" aria-pressed="false">My playlist <span id="benim-sayi"></span></button>
+        <button type="button" id="kip-radyo" aria-pressed="false">Radio</button>
+      </div>
       <div class="liste-icerik" id="liste-icerik">
-        <div class="liste-kip" role="group" aria-label="Which songs to play">
-          <button type="button" id="kip-hepsi" aria-pressed="true">All songs</button>
-          <button type="button" id="kip-benim" aria-pressed="false">My playlist <span id="benim-sayi"></span></button>
-          <button type="button" id="kip-radyo" aria-pressed="false">Radio</button>
-        </div>
         <p class="liste-not" id="radyo-not" hidden>The gramophone composes these songs itself, new ones on every visit. Like one? Send it to the gramophone, free: it gets a name, an artist and a cover of its own, and everyone can play it.</p>
         <p class="liste-not" id="liste-not" hidden>No songs have been uploaded yet, so the gramophone plays tunes it composes itself.</p>
         <p class="liste-not" id="benim-bos" hidden>Your playlist is empty. Tap the heart next to a song to add it here.</p>

@@ -108,16 +108,17 @@
     if (telefon.matches) {
       k.style.left = k.style.top = "";
     } else if (!k.hidden) {
-      var cv = $("#tuval"), W = cv.clientWidth, H = cv.clientHeight, y = g && g.adamYeri ? g.adamYeri() : null, w = k.offsetWidth, h = k.offsetHeight, x, top;
+      var cv = $("#tuval"), W = cv.clientWidth, H = cv.clientHeight, y = g && g.adamYeri ? g.adamYeri() : null, r = k.getBoundingClientRect();
+      var o = k.offsetWidth ? r.width / k.offsetWidth : 1, w = r.width, h = r.height, x, top;
       if (y) {
-        x = y.x * W - w - 34;
-        top = y.y * H - 33;
+        x = y.x * W - w - 34 * o;
+        top = y.y * H - 33 * o;
       } else {
         x = W * 0.46;
         top = H * 0.18;
       }
-      x = Math.max(16, Math.min(W - w - 16, x));
-      top = Math.max(16, Math.min(H - h - 16, top));
+      x = Math.max(16 * o, Math.min(W - w - 16 * o, x));
+      top = Math.max(16 * o, Math.min(H - h - 16 * o, top));
       k.style.left = Math.round(x) + "px";
       k.style.top = Math.round(top) + "px";
     }
