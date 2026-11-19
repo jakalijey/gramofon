@@ -3,9 +3,10 @@
     return document.querySelector(s);
   };
   var cizimHazir = false, uyelik = { aktif: false, bitis: null }, aliniyor = false;
-  var denemeTur = "";
+  var denemeTur = "", hedefSarki = "";
   (function() {
-    var q = new URLSearchParams(location.search), oturum = null;
+    var q = new URLSearchParams(location.search), oturum = null, s = q.get("sarki");
+    if (s && /^[a-z0-9-]{1,64}$/.test(s)) hedefSarki = s;
     try {
       oturum = sessionStorage.getItem("gramofon-deneme");
     } catch (e) {
@@ -628,7 +629,7 @@
     }).then(function() {
       uyelikCiz();
       durumYaz("Enjoy. Your month of music starts now.", "iyi");
-      GramofonOynatici.cal();
+      GramofonOynatici.cal(hedefIndeks >= 0 ? hedefIndeks : null);
       setTimeout(function() {
         panoAc(false);
       }, 1800);
@@ -652,6 +653,10 @@
   $("#cal").addEventListener("click", uyeIse(function() {
     if (kip === "benim" && !benimDizinler().length && !GramofonOynatici.durum().parca) {
       durumYaz("Your playlist is empty. Tap the heart next to a song to add it.");
+      return;
+    }
+    if (hedefIndeks >= 0 && !GramofonOynatici.durum().parca) {
+      GramofonOynatici.cal(hedefIndeks);
       return;
     }
     GramofonOynatici.degistir();
@@ -702,7 +707,10 @@
       return;
     }
     simdiCiz(d, tur !== "zaman");
-    if (tur === "parca") gonderDugmesi();
+    if (tur === "parca") {
+      gonderDugmesi();
+      hedefBitti();
+    }
     if (!!d.caliyor !== caliyorDu) {
       caliyorDu = !!d.caliyor;
       $(".duzen").classList.toggle("caliyor", caliyorDu);
@@ -1023,6 +1031,48 @@
     });
     kipUygula();
   }
+  var hedefIndeks = -1;
+  function hedefAc() {
+    var i = hedefSarki ? tumListe.findIndex(function(p2) {
+      return p2.id === hedefSarki;
+    }) : -1;
+    hedefSarki = "";
+    if (i < 0) return;
+    hedefIndeks = i;
+    if (kip !== "hepsi") kipSec("hepsi");
+    listeAcKapa(true);
+    var b = $('#liste .parca[data-i="' + i + '"]'), p = tumListe[i];
+    if (b) b.classList.add("hedef");
+    durumYaz("Here it is: “" + p.ad + "” by " + sanatciYazi(p) + ".", "iyi");
+    if (oda !== "gramofon") odaKur("gramofon", true);
+    if (b) hedefGoster(b, 60);
+  }
+  function hedefGoster(b, kalan, sonAcma) {
+    if (!b.isConnected || kalan <= 0) return;
+    var simdi = Date.now(), bekle = gecis || $(".duzen").classList.contains("bekliyor");
+    if (!bekle && oda === "gramofon" && panoVar && !panoAcik && !(sonAcma > simdi - 2e3)) {
+      panoAc(true);
+      sonAcma = simdi;
+    }
+    if (bekle || panoVar && !panoAcik || !b.offsetParent) {
+      setTimeout(function() {
+        hedefGoster(b, kalan - 1, sonAcma);
+      }, 300);
+      return;
+    }
+    if (!$(".duzen").classList.contains("masaustu")) {
+      b.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+    var ic = $("#liste-icerik");
+    ic.scrollTop = Math.max(0, b.offsetTop - ic.offsetTop - (ic.clientHeight - b.offsetHeight) / 2);
+  }
+  function hedefBitti() {
+    hedefIndeks = -1;
+    document.querySelectorAll("#liste .parca.hedef").forEach(function(x) {
+      x.classList.remove("hedef");
+    });
+  }
   function listeAcKapa(ac) {
     $("#liste-ac").setAttribute("aria-expanded", ac ? "true" : "false");
     $("#liste-bolum").dataset.acik = ac ? "1" : "0";
@@ -1105,6 +1155,7 @@
     salonPanosu();
     listeCiz(l, uretim);
     simdiCiz(GramofonOynatici.durum(), true);
+    hedefAc();
   });
   GramofonUyelik.durum().then(function(d) {
     uyelik = d;

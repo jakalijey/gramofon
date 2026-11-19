@@ -129,6 +129,8 @@ button { font: inherit; color: inherit; }
 .parca .ad { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .parca .sanatci { color: var(--ikincil); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .parca.calan .no, .parca.calan .ad { color: var(--kehribar-yazi); font-weight: 600; }
+.parca.hedef { background: rgba(217, 119, 6, .14); box-shadow: inset 3px 0 0 var(--kehribar); }
+.parca.hedef:hover { background: rgba(217, 119, 6, .2); }
 
 .panel-alt { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
 .kayit-davet {

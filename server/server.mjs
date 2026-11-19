@@ -737,7 +737,7 @@ function makbuzYaz(e) {
   const govde = [
     `Hi ${e.sanatci},`,
     "",
-    `Your song “${e.ad}” reached the recording room${test}. Thank you!`,
+    `Your song “${e.ad}” reached the Gramofon recording room${test}. Thank you!`,
     "",
     e.durum === "kanit" ? "A song with this name and artist has already been released, so before it goes on the gramophone we need proof that it’s yours: an email from the artist’s official address, management, label or distributor, or a short code we give you, posted on the artist’s official account. Just reply to this email." : `We listen to every song by hand. We’ll email you again as soon as it’s reviewed, and you can follow it on the hall board at ${SITE_ADRESI}`,
     "",
@@ -752,7 +752,7 @@ function makbuzYaz(e) {
     "Gramofon",
     ""
   ].join("\n");
-  return { durum: "bekliyor", zaman: simdiSn(), konu: `We got your song “${e.ad}”${test}`, govde };
+  return { durum: "bekliyor", zaman: simdiSn(), konu: `Gramofon: we got your song “${e.ad}”${test}`, govde };
 }
 async function yuklemeBitir(req, res, id) {
   const h = hakCoz(req.headers["x-hak"]);
