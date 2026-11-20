@@ -76,12 +76,12 @@
     p.style.transform = "scale(" + k.toFixed(4) + ")";
   }
   function olcekKur() {
-    var d = $(".duzen"), kok = document.documentElement, masa = !dikMi.matches && !yatayMi.matches, tv = $("#tuval"), s = $("#test-serit");
+    var d = $(".duzen"), kok = document.documentElement, masa = !dikMi.matches && !yatayMi.matches, tv = $("#tuval"), s = $("#ust-serit");
     d.classList.toggle("masaustu", masa);
     kok.classList.toggle("masaustu", masa);
     if (masa) kok.style.setProperty("--o", Math.min((tv.clientWidth || innerWidth) / 1280, (tv.clientHeight || innerHeight) / 620).toFixed(4));
     else kok.style.removeProperty("--o");
-    kok.style.setProperty("--serit", (s && !s.hidden ? Math.ceil(s.getBoundingClientRect().bottom) : 0) + "px");
+    kok.style.setProperty("--serit", (s && s.getClientRects().length ? Math.ceil(s.getBoundingClientRect().bottom) : 0) + "px");
   }
   function duvarDugmesi() {
     var b = $("#pano-duvar"), y = panoVar && !panoAcik && Gramofon.panelYeri ? Gramofon.panelYeri() : null;
@@ -155,7 +155,28 @@
     duvarDugmesi();
     if (icerde && !$("#pano-duvar").hidden) $("#pano-duvar").focus();
   });
-  if (window.GramofonAg && GramofonAg.test) $("#test-serit").hidden = false;
+  if (window.GramofonAg && GramofonAg.test) {
+    $("#test-serit").hidden = false;
+    olcekKur();
+  }
+  $("#blaze-adres").addEventListener("click", function() {
+    var a = this.getAttribute("data-adres"), y = $("#blaze-durum"), bitti = function(m) {
+      y.textContent = m;
+      clearTimeout(y._s);
+      y._s = setTimeout(function() {
+        y.textContent = "";
+        olcekKur();
+      }, 2200);
+      olcekKur();
+    };
+    var elle = function() {
+      window.prompt("Copy this CashTokens address:", a);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(a).then(function() {
+      bitti("Copied");
+    }, elle);
+    else elle();
+  });
   var oda = "salon", kapiSaat = 0, salonListe = [];
   $(".duzen").dataset.oda = oda;
   $(".duzen").dataset.sahne = oda;

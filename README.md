@@ -41,8 +41,12 @@ on GitHub, and rebuilds the drawing core from source to check it matches the com
 
 ## BCH BLAZE 2026
 
-Gramofon was built from scratch for BCH BLAZE 2026 (Mainnet track). Support the project with a donation to its CashTokens address:
-`bitcoincash:zrcq3lg6h3hdl04k0l8fzsger88yvwqvxuswgq9yhe`
+Gramofon was built from scratch for BCH BLAZE 2026 (Mainnet track).
+
+- Presentation: [docs/gramofon-blaze-2026.pdf](docs/gramofon-blaze-2026.pdf)
+- Try it: https://gramofon.heylogram.com. During judging, a month of music costs one cent.
+- Vote with EMBER2026 tokens, or support the project, at its CashTokens address:
+  `bitcoincash:zrcq3lg6h3hdl04k0l8fzsger88yvwqvxuswgq9yhe`
 
 Contact: gramofon@heylogram.com
 
