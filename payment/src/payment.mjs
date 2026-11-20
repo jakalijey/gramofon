@@ -171,7 +171,7 @@ function islemKur(utxolar, yollar, teklif, paraUstuAdresi) {
 async function ode(a, bilgi, yukleme) {
   const dokunmatik = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
   const onek = a.onek || "bitcoincash", test = !!a.test;
-  const p = pencere(test ? "Connect your BCH wallet (test network)" : "Connect your BCH wallet", (test ? "Test network: switch Paytaca to Chipnet first (Settings: Use Chipnet Network). Free test coins: faucet.paytaca.com. " : "") + (dokunmatik ? "Tap “Open wallet app” to connect Paytaca or Selene on this phone, or scan the code from another device." : "Scan this code with Paytaca or Selene.") + " Nothing is paid until you approve it in your wallet.");
+  const p = pencere(test ? "Connect your BCH wallet (test network)" : "Connect your BCH wallet", (test ? "Test network: switch Paytaca to Chipnet first (Settings: Use Chipnet Network). Free test coins: tbch.googol.cash. " : "") + (dokunmatik ? "Tap “Open wallet app” to connect Paytaca or Selene on this phone, or scan the code from another device." : "Scan this code with Paytaca or Selene.") + " Nothing is paid until you approve it in your wallet.");
   let b = null;
   try {
     bilgi("Waiting for your wallet…");
@@ -182,7 +182,7 @@ async function ode(a, bilgi, yukleme) {
     const t = await a.postJson("/odeme/teklif", yukleme ? { amac: "yukleme" } : {});
     if (t.durum !== 200 || !ADRES_DESENI.test(t.adres || "")) throw new Error(t.hata === "ödeme kapalı" ? "Payments are not open yet." : "Could not get the price.");
     const bch = (t.sat / 1e8).toFixed(8).replace(/0+$/, "");
-    p.baslik("Approve the payment", yukleme ? `$${t.usd} = ${bch} BCH to upload one song (1 BCH = $${t.kur}).` : `$${t.usd} = ${bch} BCH for ${t.gun} days of music (1 BCH = $${t.kur}).`);
+    p.baslik("Approve the payment", yukleme ? `$${t.usd} = ${bch} BCH to upload one song (1 BCH = $${t.kur}).` : `$${t.usd} = ${bch} BCH for ${t.gun} ${t.gun === 1 ? "day" : "days"} of music (1 BCH = $${t.kur}).`);
     p.yaz("Reading your wallet…");
     const liste = adresler(b.mgr, onek);
     if (!liste.length) throw new Error("The wallet did not share its addresses.");
@@ -198,7 +198,7 @@ async function ode(a, bilgi, yukleme) {
       transaction: {
         transaction: binToHex(encodeTransaction(k.islem)),
         sourceOutputs: k.kaynaklar.map(sourceOutputToRelay),
-        userPrompt: yukleme ? "Gramofon: upload one song" : `Gramofon: ${t.gun} days of music`,
+        userPrompt: yukleme ? "Gramofon: upload one song" : `Gramofon: ${t.gun} ${t.gun === 1 ? "day" : "days"} of music`,
         broadcast: false
       },
       inputPaths: k.yollar
@@ -218,7 +218,7 @@ async function ode(a, bilgi, yukleme) {
       p.qrGizle();
       p.dugmeleriSil();
       p.yaz("");
-      p.baslik("Not enough BCH yet", `Your wallet is connected, but it has ${bch(e.eksikBch.var)} BCH. ` + (yukleme ? "Uploading a song needs " : "A month of music needs ") + `${bch(e.eksikBch.gerek)} BCH, network fee included. ` + (test ? "Get free test coins at faucet.paytaca.com, then " : "Add some BCH to this wallet and ") + (yukleme ? "try again." : "drop the token again."));
+      p.baslik("Not enough BCH yet", `Your wallet is connected, but it has ${bch(e.eksikBch.var)} BCH. ` + (yukleme ? "Uploading a song needs " : "A token needs ") + `${bch(e.eksikBch.gerek)} BCH, network fee included. ` + (test ? "Get free test coins at tbch.googol.cash, then " : "Add some BCH to this wallet and ") + (yukleme ? "try again." : "drop the token again."));
       await new Promise((ok) => p.dugme("Close", ok));
     }
     p.kapat();
