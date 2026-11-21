@@ -63,6 +63,12 @@
       }
       if (window.GramofonOdeme) return window.GramofonOdeme.uyelikAl(this.fiyatUsd, bilgi);
       return Promise.reject(new Error("Payments are not connected on this page yet."));
+    },
+    girisYap: function(bilgi) {
+      if (deneme) return Promise.reject(new Error("Sign-in is not part of the local test."));
+      if (window.GramofonOdeme && window.GramofonOdeme.girisYap) return window.GramofonOdeme.girisYap(bilgi || function() {
+      });
+      return Promise.reject(new Error("Sign-in is not connected on this page yet."));
     }
   };
 })();

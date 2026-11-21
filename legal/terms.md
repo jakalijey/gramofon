@@ -1,12 +1,12 @@
 # Gramofon Terms of Use
 
-Last updated: 18 November 2026
+Last updated: 21 November 2026
 
 Gramofon is a music app made by Heylogram. By using it you accept these terms.
 
 ## Membership
 
-- A membership lets you play every song on Gramofon for 30 days, in the browser where you paid.
+- A membership lets you play every song on Gramofon for 30 days. It is kept in the browser where you paid; on another device or after clearing your browser, sign in with the wallet you paid with to get it back.
 - The price is shown in US dollars and paid in Bitcoin Cash at the rate quoted when you pay. A quote is valid for 10 minutes.
 - Your membership starts when the payment is seen on the Bitcoin Cash network.
 

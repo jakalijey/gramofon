@@ -610,6 +610,7 @@
   function uyelikCiz() {
     $("#uyelik").dataset.aktif = uyelik.aktif ? "1" : "0";
     $("#jeton-al").hidden = uyelik.aktif;
+    $("#giris-yap").hidden = uyelik.aktif;
     $("#uye-bilgi").hidden = !uyelik.aktif;
     $("#pano-duvar").dataset.uye = uyelik.aktif ? "1" : "0";
     $("#pano-duvar-yazi").textContent = uyelik.aktif ? "Playlist" : "Drop a token";
@@ -658,6 +659,27 @@
       durumYaz(e && e.message ? e.message : "The payment did not go through.", "hata");
     }).then(function() {
       aliniyor = false;
+      $("#jeton-al").disabled = false;
+    });
+  });
+  $("#giris-yap").addEventListener("click", function() {
+    if (aliniyor) return;
+    GramofonOynatici.uyandir();
+    aliniyor = true;
+    this.disabled = true;
+    $("#jeton-al").disabled = true;
+    durumYaz("Opening the sign-in…");
+    GramofonUyelik.girisYap(function(m) {
+      durumYaz(m);
+    }).then(function(s) {
+      uyelik = { aktif: true, bitis: s.bitis };
+      uyelikCiz();
+      durumYaz("Welcome back. You are a member until " + tarihYaz(s.bitis) + ". Press play.", "iyi");
+    }).catch(function(e) {
+      durumYaz(e && e.message ? e.message : "Sign-in did not work.", "hata");
+    }).then(function() {
+      aliniyor = false;
+      $("#giris-yap").disabled = false;
       $("#jeton-al").disabled = false;
     });
   });

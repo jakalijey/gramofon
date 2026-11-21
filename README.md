@@ -14,6 +14,8 @@ Live: https://gramofon.heylogram.com · Test network (free Chipnet coins): https
 
 - **Listen.** Drop a token: one month of music, paid in BCH through WizardConnect (Paytaca, Selene). Every song in the
   playlist is then yours to play, shuffle and add to your own playlist.
+- **Sign in with your wallet.** On another device, or after clearing your browser, connect the wallet you paid with:
+  the server derives its addresses from the wallet's public keys and finds your payment. Nothing is paid or signed.
 - **Radio.** The gramophone composes songs itself, new ones on every visit. Like one? Send it to the gramophone for free:
   it gets a title, an artist name and a drawn cover of its own, and everyone can play it. These artists are made up and marked
   "from the radio".

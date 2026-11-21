@@ -1,6 +1,6 @@
 # Gramofon Privacy Policy
 
-Last updated: 19 November 2026
+Last updated: 21 November 2026
 
 Gramofon is a music app made by Heylogram. In short: you have no account with us, there are no cookies, no analytics and no ads. Your payment is a public Bitcoin Cash transaction.
 
@@ -32,7 +32,7 @@ The gramophone composes its radio songs in your browser; no recording is sent to
 
 ## What stays in your browser
 
-Your listening ticket, the end date of your membership and an unfinished payment (if any) are kept in your browser's local storage, together with small settings such as whether the playlist is open. If you paid an upload fee, your upload pass stays there until your song is sent, and the songs you uploaded from this browser are remembered so the hall can show you their status. They stay on your device. If you clear your browser data or switch devices, your membership is not carried over yet.
+Your listening ticket, the end date of your membership and an unfinished payment (if any) are kept in your browser's local storage, together with small settings such as whether the playlist is open. If you paid an upload fee, your upload pass stays there until your song is sent, and the songs you uploaded from this browser are remembered so the hall can show you their status. They stay on your device. If you clear your browser data or switch devices, you can sign in with the wallet you paid with: your wallet shares its public keys with this page (never its private keys, and nothing is paid or signed), and our server uses them once to find your payment and give your membership back. We do not keep those keys.
 
 ## Music and covers
 

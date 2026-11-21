@@ -286,6 +286,18 @@
         return o && gecerliHak() ? null : linkOde(true, bilgi, wizard);
       }).then(hakVarMi);
     },
+    girisYap: function(bilgi) {
+      bilgi = bilgi || function() {
+      };
+      return agirYukle().then(function(m) {
+        if (!m.giris) throw new Error("Please reload the page and try again.");
+        return m.giris({ postJson, test: AG.test }, bilgi);
+      }).then(function(r) {
+        bellek = { bilet: r.bilet, bitis: r.bitis, kim: r.kim || "", txid: "" };
+        yaz(KAYIT, bellek);
+        return { bitis: new Date(r.bitis * 1e3) };
+      });
+    },
     yuklemeHakki: function() {
       return gecerliHak();
     },

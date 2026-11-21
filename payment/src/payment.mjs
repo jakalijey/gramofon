@@ -236,4 +236,44 @@ async function ode(a, bilgi, yukleme) {
     }
   }
 }
-window.GramofonOdemeAgir = { uyelikAl: (a, bilgi) => ode(a, bilgi, false), yuklemeAl: (a, bilgi) => ode(a, bilgi, true) };
+async function giris(a, bilgi) {
+  const dokunmatik = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const test = !!a.test;
+  const p = pencere(test ? "Sign in with your wallet (test network)" : "Sign in with your wallet", (test ? "Test network: switch Paytaca to Chipnet first (Settings: Use Chipnet Network). " : "") + (dokunmatik ? "Scan this code from another device with the wallet you paid with, or tap “Open wallet app”." : "Scan this code with the wallet you paid with (Paytaca or Selene).") + " Nothing is paid and nothing is signed: Gramofon only looks up your membership.");
+  let b = null;
+  try {
+    bilgi("Waiting for your wallet…");
+    b = await baglan(p, location.origin + "/icon-192.png");
+    p.qrGizle();
+    p.dugmeleriSil();
+    p.baslik("Looking for your membership…", `Connected to ${b.cuzdan}.`);
+    const yollar = typeof b.mgr.getSessionPaths === "function" ? b.mgr.getSessionPaths() || [] : [];
+    const xpub = yollar.map((y) => y && y.xpub).filter((x) => typeof x === "string").slice(0, 4);
+    if (!xpub.length) throw new Error("The wallet did not share its keys.");
+    const r = await a.postJson("/uyelik/giris", { xpub });
+    if (r.durum === 200 && r.bilet) {
+      p.kapat();
+      return r;
+    }
+    if (r.durum !== 404) throw new Error(r.durum === 429 ? "Too many tries. Please wait a minute and try again." : "Could not check your membership.");
+    p.baslik("No membership on this wallet", `This wallet has no active membership${test ? " on the test network" : ""}. If you paid with another wallet, sign in with that one. Otherwise drop a token to start a month of music.`);
+    await new Promise((ok) => p.dugme("Close", ok));
+    p.kapat();
+    throw new Error("No membership on this wallet.");
+  } catch (e) {
+    p.kapat();
+    throw e;
+  } finally {
+    if (b) {
+      try {
+        await b.mgr.sendDisconnect("done");
+      } catch {
+      }
+      try {
+        b.relay.cleanup();
+      } catch {
+      }
+    }
+  }
+}
+window.GramofonOdemeAgir = { uyelikAl: (a, bilgi) => ode(a, bilgi, false), yuklemeAl: (a, bilgi) => ode(a, bilgi, true), giris };

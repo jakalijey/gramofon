@@ -544,6 +544,100 @@ function cashaddrKilit(adres) {
 }
 const ODEME_KILIDI = ODEME_ADRESI ? cashaddrKilit(ODEME_ADRESI) : "";
 if (ODEME_ADRESI && !ODEME_KILIDI) console.error("ödeme adresi çözülemedi");
+const SECP_P = 2n ** 256n - 2n ** 32n - 977n;
+const HD_SINIR = 100;
+function modUs(a, e, m) {
+  let r = 1n;
+  a %= m;
+  while (e > 0n) {
+    if (e & 1n) r = r * a % m;
+    a = a * a % m;
+    e >>= 1n;
+  }
+  return r;
+}
+function noktaAc(b) {
+  if (!b || b.length !== 33 || b[0] !== 2 && b[0] !== 3) return null;
+  const x = BigInt("0x" + b.subarray(1).toString("hex"));
+  if (x >= SECP_P) return null;
+  const y2 = (x * x % SECP_P * x + 7n) % SECP_P;
+  let y = modUs(y2, (SECP_P + 1n) / 4n, SECP_P);
+  if (y * y % SECP_P !== y2) return null;
+  if ((y & 1n) !== BigInt(b[0] & 1)) y = SECP_P - y;
+  return [x, y];
+}
+function noktaTopla([x1, y1], [x2, y2]) {
+  const m = (v) => (v % SECP_P + SECP_P) % SECP_P;
+  let l;
+  if (x1 === x2) {
+    if (m(y1 + y2) === 0n) return null;
+    l = m(3n * x1 * x1 * modUs(m(2n * y1), SECP_P - 2n, SECP_P));
+  } else l = m(m(y2 - y1) * modUs(m(x2 - x1), SECP_P - 2n, SECP_P));
+  const x3 = m(l * l - x1 - x2);
+  return [x3, m(l * (x1 - x3) - y1)];
+}
+const noktaKapa = ([x, y]) => Buffer.concat([Buffer.from([y & 1n ? 3 : 2]), Buffer.from(x.toString(16).padStart(64, "0"), "hex")]);
+function base58Coz(s) {
+  const A = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  let n = 0n;
+  for (const c of s) {
+    const i = A.indexOf(c);
+    if (i < 0) return null;
+    n = n * 58n + BigInt(i);
+  }
+  let hex = n.toString(16);
+  if (hex.length % 2) hex = "0" + hex;
+  const b = Buffer.concat([Buffer.alloc(s.length - s.replace(/^1+/, "").length), Buffer.from(n ? hex : "", "hex")]);
+  if (b.length < 5) return null;
+  const govde = b.subarray(0, -4), cift = crypto.createHash("sha256").update(crypto.createHash("sha256").update(govde).digest()).digest();
+  return cift.subarray(0, 4).equals(b.subarray(-4)) ? govde : null;
+}
+function xpubCoz(s) {
+  if (typeof s !== "string" || !/^[1-9A-HJ-NP-Za-km-z]{100,120}$/.test(s)) return null;
+  const b = base58Coz(s);
+  if (!b || b.length !== 78 || ![76067358, 70617039].includes(b.readUInt32BE(0))) return null;
+  const anahtar = Buffer.from(b.subarray(45, 78)), nokta = noktaAc(anahtar);
+  return nokta ? { kod: Buffer.from(b.subarray(13, 45)), anahtar, nokta } : null;
+}
+function hdCocuk(ust, i) {
+  const I = crypto.createHmac("sha512", ust.kod).update(Buffer.concat([ust.anahtar, Buffer.from([i >>> 24 & 255, i >>> 16 & 255, i >>> 8 & 255, i & 255])])).digest();
+  let g;
+  try {
+    const e = crypto.createECDH("secp256k1");
+    e.setPrivateKey(I.subarray(0, 32));
+    g = noktaAc(e.getPublicKey(null, "compressed"));
+  } catch {
+    return null;
+  }
+  const t = g ? noktaTopla(ust.nokta, g) : null;
+  return t ? noktaKapa(t) : null;
+}
+const h160 = (b) => crypto.createHash("ripemd160").update(crypto.createHash("sha256").update(b).digest()).digest();
+const girisSayac = new Map();
+async function uyelikGiris(req, res) {
+  const ip = String(req.headers["x-real-ip"] || req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+  const simdi = simdiSn(), son = (girisSayac.get(ip) || []).filter((z) => z > simdi - 60);
+  if (son.length >= 6) return yanit(req, res, 429, { hata: "çok deneme" });
+  son.push(simdi);
+  girisSayac.set(ip, son);
+  if (girisSayac.size > 5e3) girisSayac.clear();
+  const g = await govdeOku(req, 4096);
+  const xpubler = Array.isArray(g.xpub) ? g.xpub.slice(0, 4).map(xpubCoz) : [];
+  if (!xpubler.length || xpubler.some((x) => !x)) return yanit(req, res, 400, { hata: "xpub" });
+  const aranan = new Map();
+  for (const k of Object.values(kayitlar.txid)) {
+    if (k.amac === "y" || !(k.bitis > simdi)) continue;
+    const kl = cashaddrKilit(k.kim);
+    if (kl && !(aranan.has(kl) && aranan.get(kl).bitis >= k.bitis)) aranan.set(kl, k);
+  }
+  let bulunan = null;
+  if (aranan.size) for (const x of xpubler) for (let i = 0; i < HD_SINIR; i++) {
+    const c = hdCocuk(x, i), k = c && aranan.get("76a914" + h160(c).toString("hex") + "88ac");
+    if (k && !(bulunan && bulunan.bitis >= k.bitis)) bulunan = k;
+  }
+  if (!bulunan) return yanit(req, res, 404, { hata: "üyelik yok" });
+  return yanit(req, res, 200, { bilet: imzalaPaket("", { u: bulunan.kim, b: bulunan.bitis }), bitis: bulunan.bitis, kim: bulunan.kim });
+}
 function hamCoz(hex) {
   try {
     const b = Buffer.from(hex, "hex");
@@ -1057,6 +1151,19 @@ async function yonetim(req, res, u) {
     await kayitYaz();
     return yanit(req, res, 200, { hak: hakVer(txid, kayitlar.txid[txid]) });
   }
+  if (u.pathname === "/yonetim/uyelik-deneme") {
+    if (typeof g.sil === "string" && /^deneme-uye-[a-f0-9]{16}$/.test(g.sil)) {
+      delete kayitlar.txid[g.sil];
+      await kayitYaz();
+      return yanit(req, res, 200, { ok: true });
+    }
+    const saat = Math.min(72, Math.max(1, Number(g.saat) || 1)), kim = String(g.kim || "");
+    if (!cashaddrKilit(kim)) return yanit(req, res, 400, { hata: "adres" });
+    const txid = "deneme-uye-" + crypto.randomBytes(8).toString("hex"), zaman = simdiSn();
+    kayitlar.txid[txid] = { kim, sat: 0, zaman, bitis: zaman + saat * 3600, n: "", deneme: true };
+    await kayitYaz();
+    return yanit(req, res, 200, { txid, bitis: zaman + saat * 3600 });
+  }
   const m = /^\/yonetim\/(bekleyen|sil)\/([a-f0-9]{12})$/.exec(u.pathname);
   const e = m ? bekleyen.liste.find((x) => x.id === m[2]) : null;
   if (!e) return yanit(req, res, 404, { hata: "yok" });
@@ -1128,6 +1235,7 @@ const sunucu = http.createServer(async (req, res) => {
       if (u.pathname === "/odeme/utxo") return await utxoVer(req, res);
       if (u.pathname === "/odeme/tamamla") return await tamamla(req, res);
       if (u.pathname === "/odeme/link") return await linkKontrol(req, res);
+      if (u.pathname === "/uyelik/giris") return await uyelikGiris(req, res);
       if (u.pathname === "/yukle/baslat") return await yuklemeBaslat(req, res);
       if (u.pathname === "/radyo/gonder") return await radyoGonder(req, res);
       const yb = /^\/yukle\/([a-f0-9]{12})\/bitir$/.exec(u.pathname);
