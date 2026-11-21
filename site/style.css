@@ -51,12 +51,22 @@ button { font: inherit; color: inherit; }
 .uye { margin: 0; color: var(--ikincil); font-size: 14px; }
 
 .giris-bag {
-  display: block; margin: 6px 0 0; padding: 4px 2px; border: 0; background: none; color: var(--kehribar-yazi); cursor: pointer;
-  font: inherit; font-size: 13.5px; font-weight: 600; text-align: left; text-decoration: underline; text-underline-offset: 3px;
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; margin: 8px 0 0; padding: 8px 14px 8px 16px;
+  border: 1.5px solid rgba(26, 13, 46, .28); border-radius: 12px; background: rgba(255, 255, 255, .5); color: var(--murekkep);
+  font: inherit; text-align: left; cursor: pointer; box-shadow: 0 2px 0 rgba(26, 13, 46, .08);
+  transition: background .18s, border-color .18s, transform .18s, box-shadow .18s;
 }
-.giris-bag:hover { color: var(--murekkep); }
-.giris-bag:disabled { opacity: .6; cursor: progress; }
-.giris-bag:focus-visible { outline: 2px solid var(--murekkep); outline-offset: 2px; border-radius: 4px; }
+.giris-bag:hover { background: #fff; border-color: var(--murekkep); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(26, 13, 46, .12); }
+.giris-bag:active { transform: translateY(0); box-shadow: 0 1px 0 rgba(26, 13, 46, .1); }
+.giris-bag:disabled { opacity: .6; cursor: progress; transform: none; }
+.giris-bag:focus-visible { outline: 2px solid var(--murekkep); outline-offset: 2px; }
+.giris-simge { flex: none; width: 30px; height: 30px; }
+.giris-yazi { display: flex; flex: 1; flex-direction: column; gap: 1px; min-width: 0; }
+.giris-ust { font-size: 12px; color: var(--ikincil); }
+.giris-alt { font-weight: 700; font-size: 14.5px; }
+.giris-ok { flex: none; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: .5; transition: transform .18s, opacity .18s; }
+.giris-bag:hover .giris-ok { transform: translateX(3px); opacity: .9; }
+@media (prefers-reduced-motion: reduce) { .giris-bag, .giris-ok { transition: none; } .giris-bag:hover { transform: none; } }
 .uye span { color: var(--murekkep); font-weight: 600; }
 .durum { margin: 6px 0 0; min-height: 1.4em; color: var(--ikincil); font-size: 13.5px; }
 .durum[data-tur="hata"], .durum[data-tur="iyi"] { color: var(--murekkep); }
