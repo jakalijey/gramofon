@@ -2,7 +2,7 @@
 
 [![Test](https://github.com/jakalijey/gramofon/actions/workflows/test.yml/badge.svg)](https://github.com/jakalijey/gramofon/actions/workflows/test.yml)
 
-**Independent music, paid straight to the artists you play.**
+**Independent music. Half of your membership goes to the artists you play.**
 
 Gramofon is a music club built around a giant gramophone. You walk into a hall with two doors: the Gramofon door leads to the
 gramophone room, where a girl drops your token into the slot and plays your songs; the Recording door leads to the man at the
@@ -18,9 +18,10 @@ Live: https://gramofon.heylogram.com · Test network (free Chipnet coins): https
   the server derives its addresses from the wallet's public keys and finds your payment. Nothing is paid or signed.
 - **Artists get paid.** Half of every membership goes to the artists that member played, split by plays. A play counts
   after 30 seconds and plays that look automated don't count. Artists who are members count like any member, own songs
-  included: a member's money only ever goes to what that member played. Shares are added up each month and
-  paid in BCH to the wallet that paid the upload fee; balances under $1 carry over. "My songs and earnings" in the
-  recording room shows an artist their plays, listeners and earnings, and turns a monthly email on or off. It opens
+  included: a member's money only ever goes to what that member played. Shares are added up at the end of each month;
+  in the month an artist's balance passes $1 it is sent in BCH to the wallet that paid the upload fee (Gramofon pays the
+  network fee), and smaller balances carry over. "My songs and earnings" in the recording room shows an artist their
+  plays, listeners and earnings, and turns the monthly email on or off; it only goes to artists who chose it. It opens
   without a wallet in the browser the song was sent from; elsewhere one wallet connection brings back both the
   membership and the songs.
 - **Radio.** The gramophone composes songs itself, new ones on every visit. Like one? Send it to the gramophone for free:

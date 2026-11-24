@@ -258,7 +258,7 @@
         return t + x.sat;
       }, 0);
       q(".sp-bu-ay").textContent = "Your share this month so far: " + paraYaz(o.buAyPay, o.usd) + ".";
-      q(".sp-bakiye").textContent = "Balance from past months: " + paraYaz(o.bakiye, o.usd) + ". Paid out once it reaches $" + o.esik + ".";
+      q(".sp-bakiye").textContent = "Balance from past months: " + paraYaz(o.bakiye, o.usd) + ". We send it in the month it passes $" + o.esik + ".";
       q(".sp-odenen").textContent = odenen ? "Paid to you so far: " + paraYaz(odenen, o.usd) + " in " + o.odenen.length + (o.odenen.length === 1 ? " payment." : " payments.") : "No payouts yet.";
       q(".sp-cuzdan").textContent = "Payouts go to " + o.cuzdan.slice(0, 18) + "…" + o.cuzdan.slice(-6) + ", the wallet you paid the upload fee from.";
       var e = q(".sp-eposta");
