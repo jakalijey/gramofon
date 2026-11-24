@@ -175,8 +175,9 @@
       }
     });
   })();
-  $("#blaze-adres").addEventListener("click", function() {
-    var a = this.getAttribute("data-adres"), y = $("#blaze-durum"), bitti = function(m) {
+  var oyAdres = $("#blaze-adres").getAttribute("data-adres");
+  function oyKopyala() {
+    var y = $("#blaze-durum"), bitti = function(m) {
       y.textContent = m;
       clearTimeout(y._s);
       y._s = setTimeout(function() {
@@ -186,12 +187,37 @@
       olcekKur();
     };
     var elle = function() {
-      window.prompt("Copy this CashTokens address:", a);
+      window.prompt("Copy this CashTokens address:", oyAdres);
     };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(a).then(function() {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(oyAdres).then(function() {
       bitti("Copied");
     }, elle);
     else elle();
+  }
+  $("#blaze-adres").addEventListener("click", oyKopyala);
+  $("#blaze-kopyala").addEventListener("click", oyKopyala);
+  var qrKutu = $("#blaze-qr"), qrDugme = $("#blaze-qr-ac");
+  function qrGoster(ac) {
+    qrKutu.hidden = !ac;
+    qrDugme.setAttribute("aria-expanded", ac ? "true" : "false");
+    if (ac) $("#blaze-qr-kapat").focus();
+  }
+  qrDugme.addEventListener("click", function(e) {
+    e.stopPropagation();
+    qrGoster(qrKutu.hidden);
+  });
+  $("#blaze-qr-kapat").addEventListener("click", function() {
+    qrGoster(false);
+    qrDugme.focus();
+  });
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && !qrKutu.hidden) {
+      qrGoster(false);
+      qrDugme.focus();
+    }
+  });
+  document.addEventListener("click", function(e) {
+    if (!qrKutu.hidden && !qrKutu.contains(e.target) && e.target !== qrDugme) qrGoster(false);
   });
   var oda = "salon", kapiSaat = 0, salonListe = [];
   $(".duzen").dataset.oda = oda;
