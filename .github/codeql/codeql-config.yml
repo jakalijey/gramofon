@@ -1,0 +1,5 @@
+name: Gramofon CodeQL
+# Built files are generated from the sources in payment/ and drawing/, which are scanned instead.
+paths-ignore:
+  - site/payment/payment.js
+  - site/engine
