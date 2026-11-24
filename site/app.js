@@ -1224,6 +1224,12 @@
   }).catch(function() {
     uyelikCiz();
   });
+  window.addEventListener("gramofon-uyelik", function() {
+    GramofonUyelik.durum().then(function(d) {
+      uyelik = d;
+      uyelikCiz();
+    });
+  });
   uyelikCiz();
   bekleyenleriAl();
 })();

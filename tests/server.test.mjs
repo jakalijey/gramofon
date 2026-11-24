@@ -120,3 +120,22 @@ test('an artist who is a member counts when playing their own song, within the s
   assert.equal(again.body.sayildi, false);
   assert.equal(again.body.neden, 'hizli');
 });
+
+const post = (path, body) => call(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+
+test('the artist panel opens with a ticket from this browser, no wallet needed', async () => {
+  const viaMembership = await post('/sanatci/ozet', { biletler: [ticket(ARTIST)] });
+  assert.equal(viaMembership.status, 200);
+  assert.equal(viaMembership.body.sarkilar[0].ad, 'Song One');
+  assert.equal(viaMembership.body.sarkilar[0].durum, 'onay');
+  assert.ok(viaMembership.body.sarkilar[0].buAy.kendi >= 1);
+  const artistTicket = viaMembership.body.bilet;
+  assert.equal((await post('/sanatci/ozet', { biletler: [artistTicket] })).status, 200);
+  assert.equal((await post('/sanatci/ozet', { biletler: [ticket(MEMBER)] })).status, 404);
+  assert.equal((await post('/sanatci/ozet', { biletler: ['x.y', ticket(ARTIST, -60)] })).status, 401);
+  const on = await post('/sanatci/eposta', { bilet: artistTicket, eposta: 'artist@example.com' });
+  assert.equal(on.status, 200);
+  assert.equal(on.body.eposta, 'a***@example.com');
+  const off = await post('/sanatci/eposta', { bilet: artistTicket, sil: true });
+  assert.equal(off.body.eposta, '');
+});

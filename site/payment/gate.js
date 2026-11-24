@@ -5,9 +5,43 @@
   var API = AG.api;
   var KAYIT = AG.anahtar("gramofon-uyelik"), BEKLEYEN = AG.anahtar("gramofon-bekleyen-odeme"), bellek = null, agir = null;
   var HAK = AG.anahtar("gramofon-yukleme-hakki"), BEKLEYEN_Y = AG.anahtar("gramofon-bekleyen-yukleme");
+  var SANATCI = AG.anahtar("gramofon-sanatci");
   function gecerliHak() {
     var v = oku(HAK);
     return v && v.hak && v.bitis * 1e3 > Date.now() ? v : null;
+  }
+  function sanatciBiletleri() {
+    var v = oku(SANATCI), l = v && Array.isArray(v.biletler) ? v.biletler.slice(0, 5) : [], u = gecerli();
+    if (u && u.bilet) l.push(u.bilet);
+    return l;
+  }
+  function sanatciSakla(bilet, yalniz) {
+    if (!bilet) return;
+    var v = oku(SANATCI), l = yalniz || !v || !Array.isArray(v.biletler) ? [] : v.biletler.filter(function(x) {
+      return x !== bilet;
+    });
+    l.unshift(bilet);
+    yaz(SANATCI, { biletler: l.slice(0, 5) });
+  }
+  function uyelikGeriGeldi(u) {
+    if (!u || !u.bilet || gecerli()) return;
+    bellek = { bilet: u.bilet, bitis: u.bitis, kim: u.kim || "", txid: "" };
+    yaz(KAYIT, bellek);
+    try {
+      window.dispatchEvent(new CustomEvent("gramofon-uyelik"));
+    } catch (e) {
+    }
+  }
+  function sanatciCuzdanla(bilgi) {
+    return agirYukle().then(function(m) {
+      if (!m.sanatci) throw new Error("Please reload the page and try again.");
+      return m.sanatci({ postJson, test: AG.test }, bilgi || function() {
+      });
+    }).then(function(r) {
+      sanatciSakla(r.bilet, true);
+      uyelikGeriGeldi(r.uyelik);
+      return r;
+    });
   }
   function oku(a) {
     try {
@@ -295,15 +329,29 @@
       }).then(function(r) {
         bellek = { bilet: r.bilet, bitis: r.bitis, kim: r.kim || "", txid: "" };
         yaz(KAYIT, bellek);
+        if (r.sanatciBilet) sanatciSakla(r.sanatciBilet);
         return { bitis: new Date(r.bitis * 1e3) };
       });
     },
     sanatciGiris: function(bilgi) {
-      return agirYukle().then(function(m) {
-        if (!m.sanatci) throw new Error("Please reload the page and try again.");
-        return m.sanatci({ postJson, test: AG.test }, bilgi || function() {
-        });
+      var elde = sanatciBiletleri();
+      var once = !elde.length ? Promise.resolve(null) : postJson("/sanatci/ozet", { biletler: elde }).then(function(r) {
+        if (r.durum === 200 && r.bilet) {
+          sanatciSakla(r.bilet, true);
+          return r;
+        }
+        if (r.durum === 401 || r.durum === 404) return null;
+        throw new Error(r.durum === 429 ? "Too many tries. Please wait a minute and try again." : "Something went wrong. Please try again.");
+      }, function() {
+        throw new Error("Couldn’t reach the desk. Check your connection and try again.");
       });
+      return once.then(function(r) {
+        return r || sanatciCuzdanla(bilgi);
+      });
+    },
+    sanatciCuzdanla,
+    sanatciBiletEkle: function(bilet) {
+      sanatciSakla(bilet);
     },
     sanatciEposta: function(bilet, eposta) {
       return postJson("/sanatci/eposta", eposta ? { bilet, eposta } : { bilet, sil: true });

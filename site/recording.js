@@ -186,11 +186,15 @@
       ], "istiyor");
     });
   }
-  function sarkilarim() {
+  function sarkilarim(cuzdanla) {
     temizle();
-    soyle("Sure. Connect the wallet you paid the upload fee with, and I’ll pull up your songs.", [], "istiyor");
-    GramofonOdeme.sanatciGiris(function() {
-    }).then(function(r) {
+    soyle("Let me find your songs…", [], "istiyor");
+    var istendi = false, bilgi = function() {
+      if (istendi) return;
+      istendi = true;
+      soyle("Connect the wallet you paid the upload fee with, and I’ll pull up your songs.", [], "istiyor");
+    };
+    (cuzdanla === true ? GramofonOdeme.sanatciCuzdanla(bilgi) : GramofonOdeme.sanatciGiris(bilgi)).then(function(r) {
       soyle("Here are your songs. Thanks for being part of Gramofon!", [
         { yazi: "Back to my songs", is: function() {
           panelAc(r);
@@ -295,10 +299,19 @@
         q(".odeme-durum").textContent = "That didn’t work. Please try again.";
       });
     }
+    var baska = document.createElement("button");
+    baska.type = "button";
+    baska.className = "ikincil";
+    baska.textContent = "Use another wallet";
+    baska.addEventListener("click", function() {
+      kapat();
+      sarkilarim(true);
+    });
     var kapatDugme = document.createElement("button");
     kapatDugme.type = "button";
     kapatDugme.textContent = "Close";
     kapatDugme.addEventListener("click", kapat);
+    q(".odeme-dugmeler").appendChild(baska);
     q(".odeme-dugmeler").appendChild(kapatDugme);
     yaz(r);
     kapatDugme.focus({ preventScroll: true });
@@ -480,6 +493,7 @@
         throw new Error(r.durum === 409 ? "This payment was already used for a song." : "Your upload pass has expired. Talk to the man at the desk again.");
       }
       if (r.durum !== 200 || !r.id) throw new Error(sunucuHata(r));
+      if (r.sanatciBilet && GramofonOdeme.sanatciBiletEkle) GramofonOdeme.sanatciBiletEkle(r.sanatciBilet);
       var id = r.id;
       return dosyaGonder(id, "ses", ses, hak, function(n) {
         ilerleme(n / toplam);
@@ -583,6 +597,7 @@
     sirayla([
       { s: "Thanks! We’ll give “" + ad + "” a proper listen.", adam: "inceliyor" },
       haber ? "I’m emailing you a receipt now, and we’ll write again once it’s reviewed. You can also check the board in the hall." : "Check the board in the hall to see if it’s approved.",
+      "Once it’s on the gramophone, come back and ask me for “My songs and earnings” to see its plays.",
       "Meanwhile, why not listen to some music next door?"
     ], [
       { yazi: "Go to the gramophone", is: kapidanGec },

@@ -19,8 +19,10 @@ Live: https://gramofon.heylogram.com · Test network (free Chipnet coins): https
 - **Artists get paid.** Half of every membership goes to the artists that member played, split by plays. A play counts
   after 30 seconds and plays that look automated don't count. Artists who are members count like any member, own songs
   included: a member's money only ever goes to what that member played. Shares are added up each month and
-  paid in BCH to the wallet that paid the upload fee; balances under $1 carry over. Artists can get a monthly email with
-  their plays, listeners and earnings.
+  paid in BCH to the wallet that paid the upload fee; balances under $1 carry over. "My songs and earnings" in the
+  recording room shows an artist their plays, listeners and earnings, and turns a monthly email on or off. It opens
+  without a wallet in the browser the song was sent from; elsewhere one wallet connection brings back both the
+  membership and the songs.
 - **Radio.** The gramophone composes songs itself, new ones on every visit. Like one? Send it to the gramophone for free:
   it gets a title, an artist name and a drawn cover of its own, and everyone can play it. These artists are made up and marked
   "from the radio".

@@ -670,24 +670,59 @@ async function uyelikGiris(req, res) {
   const g = await govdeOku(req, 4096);
   const xpubler = Array.isArray(g.xpub) ? g.xpub.slice(0, 4).map(xpubCoz) : [];
   if (!xpubler.length || xpubler.some((x) => !x)) return yanit(req, res, 400, { hata: "xpub" });
-  const aranan = new Map();
+  const { uyelik: bulunan, kimler } = cuzdanTara(xpubler);
+  if (!bulunan) return yanit(req, res, 404, { hata: "üyelik yok" });
+  return yanit(req, res, 200, {
+    bilet: imzalaPaket("", { u: bulunan.kim, b: bulunan.bitis }),
+    bitis: bulunan.bitis,
+    kim: bulunan.kim,
+    ...kimler.size ? { sanatciBilet: sanatciBiletVer(kimler) } : {}
+  });
+}
+function cuzdanTara(xpubler) {
+  const simdi = simdiSn(), aranan = new Map(), yukleyen = new Map();
   for (const k of Object.values(kayitlar.txid)) {
     if (k.amac === "y" || !(k.bitis > simdi)) continue;
     const kl = cashaddrKilit(k.kim);
     if (kl && !(aranan.has(kl) && aranan.get(kl).bitis >= k.bitis)) aranan.set(kl, k);
   }
-  let bulunan = null;
-  if (aranan.size) for (const x of xpubler) for (let i = 0; i < HD_SINIR; i++) {
-    const c = hdCocuk(x, i), k = c && aranan.get("76a914" + h160(c).toString("hex") + "88ac");
-    if (k && !(bulunan && bulunan.bitis >= k.bitis)) bulunan = k;
+  for (const e of bekleyen.liste) {
+    const k = kayitlar.txid[e.txid];
+    if (k && e.durum !== "yukleniyor" && ADRES_DESENI.test(k.kim || "")) yukleyen.set(cashaddrKilit(k.kim), k.kim);
   }
-  if (!bulunan) return yanit(req, res, 404, { hata: "üyelik yok" });
-  return yanit(req, res, 200, { bilet: imzalaPaket("", { u: bulunan.kim, b: bulunan.bitis }), bitis: bulunan.bitis, kim: bulunan.kim });
+  let uyelik = null;
+  const kimler = new Set();
+  if (aranan.size || yukleyen.size) for (const x of xpubler) for (let i = 0; i < HD_SINIR; i++) {
+    const c = hdCocuk(x, i);
+    if (!c) continue;
+    const kl = "76a914" + h160(c).toString("hex") + "88ac", u = aranan.get(kl), y = yukleyen.get(kl);
+    if (u && !(uyelik && uyelik.bitis >= u.bitis)) uyelik = u;
+    if (y) kimler.add(y);
+  }
+  return { uyelik, kimler };
 }
 const gizleEposta = (p) => {
   const [a, b] = String(p).split("@");
   return a.slice(0, 1) + "***@" + b;
 };
+const SANATCI_BILET_SN = 180 * 86400;
+const sanatciBiletVer = (kimler) => imzalaPaket("sanatci:", { k: [...kimler].slice(0, 6), b: simdiSn() + SANATCI_BILET_SN });
+function biletKimleri(biletler) {
+  const kimler = new Set(), simdi = simdiSn();
+  for (const b of (Array.isArray(biletler) ? biletler : []).slice(0, 6)) {
+    const t = String(b || ""), s = paketCoz("sanatci:", t);
+    if (s) {
+      if (Number(s.b) > simdi && Array.isArray(s.k)) {
+        for (const k of s.k) if (ADRES_DESENI.test(String(k))) kimler.add(String(k));
+      }
+      continue;
+    }
+    const u = paketCoz("", t);
+    if (u && Number(u.b) > simdi && ADRES_DESENI.test(String(u.u || ""))) kimler.add(String(u.u));
+  }
+  return kimler;
+}
+const ozetSayac = new Map();
 function sanatciKayitlari(kimler) {
   return bekleyen.liste.filter((e) => {
     const k = kayitlar.txid[e.txid];
@@ -744,18 +779,26 @@ async function sanatciGiris(req, res) {
   const g = await govdeOku(req, 4096);
   const xpubler = Array.isArray(g.xpub) ? g.xpub.slice(0, 4).map(xpubCoz) : [];
   if (!xpubler.length || xpubler.some((x) => !x)) return yanit(req, res, 400, { hata: "xpub" });
-  const yuklemeKilitleri = new Map();
-  for (const e of bekleyen.liste) {
-    const k = kayitlar.txid[e.txid];
-    if (k && ADRES_DESENI.test(k.kim || "")) yuklemeKilitleri.set(cashaddrKilit(k.kim), k.kim);
-  }
-  const kimler = new Set();
-  if (yuklemeKilitleri.size) for (const x of xpubler) for (let i = 0; i < HD_SINIR; i++) {
-    const c = hdCocuk(x, i), kim = c && yuklemeKilitleri.get("76a914" + h160(c).toString("hex") + "88ac");
-    if (kim) kimler.add(kim);
-  }
+  const { uyelik, kimler } = cuzdanTara(xpubler);
   if (!kimler.size) return yanit(req, res, 404, { hata: "şarkı yok" });
-  yanit(req, res, 200, { bilet: imzalaPaket("sanatci:", { k: [...kimler], b: simdi + 7200 }), ...await sanatciOzet(kimler) });
+  yanit(req, res, 200, {
+    bilet: sanatciBiletVer(kimler),
+    ...await sanatciOzet(kimler),
+    ...uyelik ? { uyelik: { bilet: imzalaPaket("", { u: uyelik.kim, b: uyelik.bitis }), bitis: uyelik.bitis, kim: uyelik.kim } } : {}
+  });
+}
+async function sanatciOzetUcu(req, res) {
+  const ip = String(req.headers["x-real-ip"] || req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+  const simdi = simdiSn(), son = (ozetSayac.get(ip) || []).filter((z) => z > simdi - 60);
+  if (son.length >= 30) return yanit(req, res, 429, { hata: "çok deneme" });
+  son.push(simdi);
+  ozetSayac.set(ip, son);
+  if (ozetSayac.size > 5e3) ozetSayac.clear();
+  const g = await govdeOku(req, 8192), kimler = biletKimleri(g.biletler);
+  if (!kimler.size) return yanit(req, res, 401, { hata: "bilet" });
+  const sahip = new Set(sanatciKayitlari(kimler).map((e) => kayitlar.txid[e.txid].kim));
+  if (!sahip.size) return yanit(req, res, 404, { hata: "şarkı yok" });
+  yanit(req, res, 200, { bilet: sanatciBiletVer(sahip), ...await sanatciOzet(sahip) });
 }
 async function sanatciEposta(req, res) {
   const g = await govdeOku(req, 2048);
@@ -1008,7 +1051,8 @@ async function yuklemeBaslat(req, res) {
   }
   Object.assign(e, { ad, sanatci, haber, eposta, rapor, zaman: simdiSn() });
   await bekleyenYaz();
-  yanit(req, res, 200, { id: e.id, ses: !!e.ses, kapak: !!e.kapak });
+  const kim = !h.k.deneme && ADRES_DESENI.test(h.k.kim || "") ? h.k.kim : "";
+  yanit(req, res, 200, { id: e.id, ses: !!e.ses, kapak: !!e.kapak, ...kim ? { sanatciBilet: sanatciBiletVer([kim]) } : {} });
 }
 async function dosyaKoy(req, res, id, parca) {
   const h = hakCoz(req.headers["x-hak"]);
@@ -1641,6 +1685,7 @@ const sunucu = http.createServer(async (req, res) => {
       if (u.pathname === "/dinleme") return await dinlemeSay(req, res);
       if (u.pathname === "/sanatci/giris") return await sanatciGiris(req, res);
       if (u.pathname === "/sanatci/eposta") return await sanatciEposta(req, res);
+      if (u.pathname === "/sanatci/ozet") return await sanatciOzetUcu(req, res);
       if (u.pathname === "/yukle/baslat") return await yuklemeBaslat(req, res);
       if (u.pathname === "/radyo/gonder") return await radyoGonder(req, res);
       const yb = /^\/yukle\/([a-f0-9]{12})\/bitir$/.exec(u.pathname);

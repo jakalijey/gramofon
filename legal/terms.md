@@ -30,7 +30,7 @@ Gramofon is a music app made by Heylogram. By using it you accept these terms.
 
 - Half of every membership goes to the artists that member plays, split by plays. A play counts after a member listens to a song for 30 seconds. An artist who is also a member counts like any other member, so their plays of their own songs count too. Plays that look automated are not counted.
 - Earnings are added up once a month and paid in Bitcoin Cash to the wallet you paid the upload fee from. If your balance is below $1, it carries over to the next month.
-- You can see your plays, listeners, share, balance and payouts at any time: in the recording room, tap "My songs and earnings" and connect the wallet you paid the upload fee with.
+- You can see your plays, listeners, share, balance and payouts at any time: in the recording room, tap "My songs and earnings". In the browser you uploaded from it opens straight away; on another device, connect the wallet you paid the upload fee with.
 - We email you a monthly report with the same numbers if you asked for it when you uploaded, or turned it on later under "My songs and earnings". You can turn it off there, or by replying "stop" to a report.
 
 ## Payments
