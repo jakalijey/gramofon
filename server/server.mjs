@@ -684,6 +684,100 @@ async function uyelikGiris(req, res) {
   if (!bulunan) return yanit(req, res, 404, { hata: "üyelik yok" });
   return yanit(req, res, 200, { bilet: imzalaPaket("", { u: bulunan.kim, b: bulunan.bitis }), bitis: bulunan.bitis, kim: bulunan.kim });
 }
+const gizleEposta = (p) => {
+  const [a, b] = String(p).split("@");
+  return a.slice(0, 1) + "***@" + b;
+};
+function sanatciKayitlari(kimler) {
+  return bekleyen.liste.filter((e) => {
+    const k = kayitlar.txid[e.txid];
+    return k && kimler.has(k.kim) && e.durum !== "yukleniyor";
+  });
+}
+async function sanatciOzet(kimler) {
+  const d = new Date(), ay = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  const h = ayHesapla(ay), kat = (await katalog()).sarkilar || [], kayit = sanatciKayitlari(kimler);
+  const sarkilar = kayit.map((e) => {
+    const b = e.katalog ? h.sarkilar.find((x) => x.id === e.katalog) : null;
+    let toplam = 0;
+    if (e.katalog) {
+      for (const o of dinlemeler.olay) if (o[2] === e.katalog && SAYILIR(o[3])) toplam++;
+    }
+    return {
+      ad: e.ad,
+      sanatci: e.sanatci,
+      durum: e.durum,
+      katalog: e.katalog && kat.some((x) => x.id === e.katalog) ? e.katalog : "",
+      buAy: { sayildi: b ? b.sayildi : 0, dinleyen: b ? b.dinleyen : 0, kendi: b ? b.kendi : 0 },
+      toplam
+    };
+  });
+  let buAyPay = 0, bakiyeSat = 0;
+  for (const k of kimler) {
+    buAyPay += h.paylar[k] || 0;
+    bakiyeSat += bakiye(k, ay);
+  }
+  const ep = kayit.find((e) => e.raporEposta);
+  let usd = 0;
+  try {
+    usd = await bchUsd();
+  } catch {
+  }
+  return {
+    cuzdan: [...kimler][0],
+    usd,
+    esik: ODEME_ESIGI_USD,
+    sarkilar,
+    buAyPay: Math.floor(buAyPay),
+    bakiye: Math.floor(bakiyeSat),
+    odenen: sanatcilar.odenen.filter((o) => kimler.has(o.kim)).map((o) => ({ sat: o.sat, zaman: o.zaman })),
+    eposta: ep ? gizleEposta(ep.raporEposta) : "",
+    onayli: kayit.some((e) => e.durum === "onay")
+  };
+}
+async function sanatciGiris(req, res) {
+  const ip = String(req.headers["x-real-ip"] || req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+  const simdi = simdiSn(), son = (girisSayac.get(ip) || []).filter((z) => z > simdi - 60);
+  if (son.length >= 6) return yanit(req, res, 429, { hata: "çok deneme" });
+  son.push(simdi);
+  girisSayac.set(ip, son);
+  const g = await govdeOku(req, 4096);
+  const xpubler = Array.isArray(g.xpub) ? g.xpub.slice(0, 4).map(xpubCoz) : [];
+  if (!xpubler.length || xpubler.some((x) => !x)) return yanit(req, res, 400, { hata: "xpub" });
+  const yuklemeKilitleri = new Map();
+  for (const e of bekleyen.liste) {
+    const k = kayitlar.txid[e.txid];
+    if (k && ADRES_DESENI.test(k.kim || "")) yuklemeKilitleri.set(cashaddrKilit(k.kim), k.kim);
+  }
+  const kimler = new Set();
+  if (yuklemeKilitleri.size) for (const x of xpubler) for (let i = 0; i < HD_SINIR; i++) {
+    const c = hdCocuk(x, i), kim = c && yuklemeKilitleri.get("76a914" + h160(c).toString("hex") + "88ac");
+    if (kim) kimler.add(kim);
+  }
+  if (!kimler.size) return yanit(req, res, 404, { hata: "şarkı yok" });
+  yanit(req, res, 200, { bilet: imzalaPaket("sanatci:", { k: [...kimler], b: simdi + 7200 }), ...await sanatciOzet(kimler) });
+}
+async function sanatciEposta(req, res) {
+  const g = await govdeOku(req, 2048);
+  const v = paketCoz("sanatci:", String(g.bilet || ""));
+  if (!v || !(Number(v.b) > simdiSn()) || !Array.isArray(v.k)) return yanit(req, res, 401, { hata: "bilet" });
+  const kimler = new Set(v.k.filter((x) => ADRES_DESENI.test(String(x)))), onayli = sanatciKayitlari(kimler).filter((e) => e.durum === "onay");
+  if (g.sil === true) for (const e of onayli) {
+    delete e.raporEposta;
+    e.rapor = false;
+  }
+  else {
+    const p = temiz(g.eposta, 120);
+    if (!EPOSTA.test(p)) return yanit(req, res, 400, { hata: "e-posta" });
+    if (!onayli.length) return yanit(req, res, 409, { hata: "onaylı şarkı yok" });
+    for (const e of onayli) {
+      e.raporEposta = p;
+      e.rapor = true;
+    }
+  }
+  await bekleyenYaz();
+  yanit(req, res, 200, await sanatciOzet(kimler));
+}
 function hamCoz(hex) {
   try {
     const b = Buffer.from(hex, "hex");
@@ -1156,6 +1250,7 @@ function herkeseBekleyenler() {
 const DINLEMELER = path.join(VERI, "dinlemeler.json"), SANATCILAR = path.join(VERI, "sanatcilar.json"), RAPORLAR = path.join(VERI, "raporlar.json");
 const SANATCI_PAYI = 0.5, ODEME_ESIGI_USD = Number(E.ODEME_ESIGI_USD || 1);
 const DINLEME_KOD = { 1: "sayildi", 2: "kendi", 3: "hizli", 4: "gunluk", 5: "dongu" };
+const SAYILIR = (kod) => kod === 1 || kod === 2;
 let dinlemeler = { olay: [] }, sanatcilar = { aylar: {}, odenen: [] }, raporlar = { liste: [] };
 const dinlemeYaz = () => jsonYaz(DINLEMELER, dinlemeler, KAYIT_ONEK + "yonetim/dinlemeler.json");
 const sanatciYaz = () => jsonYaz(SANATCILAR, sanatcilar, KAYIT_ONEK + "yonetim/sanatcilar.json");
@@ -1173,16 +1268,16 @@ async function dinlemeSay(req, res) {
   if (!/^[a-z0-9-]{1,64}$/.test(id) || !((await katalog()).sarkilar || []).some((s) => s.id === id)) return yanit(req, res, 404, { hata: "şarkı yok" });
   const u = String(v.u || ""), t = simdiSn();
   if (!ADRES_DESENI.test(u)) return yanit(req, res, 200, { ok: true, sayildi: false, neden: "deneme" });
-  const benim = dinlemeler.olay.filter((o) => o[1] === u && o[3] === 1 && o[0] > t - 86400);
+  const benim = dinlemeler.olay.filter((o) => o[1] === u && SAYILIR(o[3]) && o[0] > t - 86400);
   let kod = 1;
-  if (sarkiSanatcisi(id).kim === u) kod = 2;
-  else if (benim.length && t - benim[benim.length - 1][0] < 25) kod = 3;
+  if (benim.length && t - benim[benim.length - 1][0] < 25) kod = 3;
   else if (benim.length >= 150) kod = 4;
   else if (benim.filter((o) => o[2] === id).length >= 25) kod = 5;
+  else if (sarkiSanatcisi(id).kim === u) kod = 2;
   dinlemeler.olay.push([t, u, id, kod]);
   if (dinlemeler.olay[0][0] < t - 400 * 86400) dinlemeler.olay = dinlemeler.olay.filter((o) => o[0] >= t - 400 * 86400);
   await dinlemeYaz();
-  yanit(req, res, 200, { ok: true, sayildi: kod === 1, neden: DINLEME_KOD[kod] });
+  yanit(req, res, 200, { ok: true, sayildi: SAYILIR(kod), neden: DINLEME_KOD[kod] });
 }
 const ayAraligi = (ay) => {
   const [y, m] = ay.split("-").map(Number);
@@ -1200,14 +1295,14 @@ function ayHesapla(ay) {
   for (const [t, u, id, kod] of dinlemeler.olay) {
     if (t < bas || t >= son) continue;
     const s = s0(id);
-    if (kod === 1) {
+    if (SAYILIR(kod)) {
       s.sayildi++;
+      if (kod === 2) s.kendi++;
       s.dinleyen.add(u);
       const d = uyeDinleme.get(u) || new Map();
       d.set(id, (d.get(id) || 0) + 1);
       uyeDinleme.set(u, d);
-    } else if (kod === 2) s.kendi++;
-    else s.elenen++;
+    } else s.elenen++;
   }
   let dagitilan = 0, dinlenmeyen = 0;
   for (const [u, sat] of uyeSat) {
@@ -1240,7 +1335,7 @@ function bakiye(kim, haric) {
 const bchYaz = (sat) => (sat / 1e8).toFixed(8).replace(/0+$/, "").replace(/\.$/, "");
 const dolarYaz = (sat, usd) => !usd || !(sat > 0) ? "" : sat * usd / 1e8 >= 0.01 ? ` (about $${(sat * usd / 1e8).toFixed(2)})` : " (less than one cent)";
 function raporMetni(m, ayAdi, usd) {
-  const satirlar = m.sarkilar.map((s) => `- “${s.ad}”: ${s.sayildi} ${s.sayildi === 1 ? "play" : "plays"} from ${s.dinleyen} ${s.dinleyen === 1 ? "listener" : "listeners"}`);
+  const satirlar = m.sarkilar.map((s) => `- “${s.ad}”: ${s.sayildi} ${s.sayildi === 1 ? "play" : "plays"} from ${s.dinleyen} ${s.dinleyen === 1 ? "listener" : "listeners"}` + (s.kendi ? ` (including ${s.kendi} of your own)` : ""));
   const esik = m.bakiye * usd / 1e8 >= ODEME_ESIGI_USD;
   const durum = !m.kim ? "We don’t have a wallet for your songs yet. Reply with your Bitcoin Cash address and we’ll pay your balance there." : !usd ? "We couldn’t read the BCH price today, so your balance carries over to next month." : esik ? `We’ll send it to your wallet ${m.kim.slice(0, 18)}…${m.kim.slice(-6)} in the next few days.` : `That is below our $${ODEME_ESIGI_USD} payout minimum, so it carries over to next month.`;
   const govde = [
@@ -1254,7 +1349,7 @@ function raporMetni(m, ayAdi, usd) {
     `Your balance: ${bchYaz(m.bakiye)} BCH${dolarYaz(m.bakiye, usd)}.`,
     durum,
     "",
-    "How we count: a play counts after a member listens for 30 seconds. Half of every membership goes to the artists that member played, split by plays. Plays from your own wallet and plays that look automated are not counted.",
+    "How we count: a play counts after a member listens for 30 seconds. Half of every membership goes to the artists that member played, split by plays. Your own plays count too, like any member’s. Plays that look automated are not counted.",
     "",
     `Terms: ${SITE_ADRESI}/terms`,
     "Questions? Just reply to this email. To stop these monthly emails, reply “stop”.",
@@ -1278,10 +1373,10 @@ async function ayRaporu(ay, onizle) {
   const kisiler = new Map();
   for (const e of bekleyen.liste) {
     if (e.durum !== "onay" || !e.katalog || !e.raporEposta) continue;
-    const a = sarkiSanatcisi(e.katalog), s = h.sarkilar.find((x) => x.id === e.katalog) || { sayildi: 0, dinleyen: 0 }, k = kat.find((x) => x.id === e.katalog);
+    const a = sarkiSanatcisi(e.katalog), s = h.sarkilar.find((x) => x.id === e.katalog) || { sayildi: 0, dinleyen: 0, kendi: 0 }, k = kat.find((x) => x.id === e.katalog);
     if (!k) continue;
     const m = kisiler.get(e.raporEposta) || { ad: e.sanatci, kim: a.kim, sarkilar: [] };
-    m.sarkilar.push({ ad: k.ad, sayildi: s.sayildi, dinleyen: s.dinleyen });
+    m.sarkilar.push({ ad: k.ad, sayildi: s.sayildi, dinleyen: s.dinleyen, kendi: s.kendi });
     kisiler.set(e.raporEposta, m);
   }
   const mailler = [], odenecek = [];
@@ -1421,6 +1516,39 @@ async function yonetim(req, res, u) {
     await kayitYaz();
     return yanit(req, res, 200, { txid, bitis: zaman + saat * 3600 });
   }
+  if (u.pathname === "/yonetim/sanatci-deneme") {
+    if (typeof g.sil === "string") {
+      const e3 = bekleyen.liste.find((x) => x.id === g.sil && x.deneme && String(x.txid).startsWith("deneme-sanatci-"));
+      if (!e3) return yanit(req, res, 404, { hata: "yok" });
+      bekleyen.liste = bekleyen.liste.filter((x) => x !== e3);
+      delete kayitlar.txid[e3.txid];
+      await bekleyenYaz();
+      await kayitYaz();
+      return yanit(req, res, 200, { ok: true });
+    }
+    const kim = String(g.kim || "");
+    if (!cashaddrKilit(kim)) return yanit(req, res, 400, { hata: "adres" });
+    const txid = "deneme-sanatci-" + crypto.randomBytes(8).toString("hex"), zaman = simdiSn();
+    kayitlar.txid[txid] = { kim, sat: 0, zaman, bitis: zaman + 86400, n: "", amac: "y", deneme: true };
+    const e2 = {
+      id: crypto.randomBytes(6).toString("hex"),
+      durum: "onay",
+      olusma: zaman,
+      txid,
+      deneme: true,
+      ad: "Panel test",
+      sanatci: "Test artist",
+      haber: false,
+      eposta: "",
+      rapor: false,
+      zaman,
+      katalog: temiz(g.katalog, 64)
+    };
+    bekleyen.liste.push(e2);
+    await kayitYaz();
+    await bekleyenYaz();
+    return yanit(req, res, 200, { id: e2.id, txid });
+  }
   const m = /^\/yonetim\/(bekleyen|sil)\/([a-f0-9]{12})$/.exec(u.pathname);
   const e = m ? bekleyen.liste.find((x) => x.id === m[2]) : null;
   if (!e) return yanit(req, res, 404, { hata: "yok" });
@@ -1511,6 +1639,8 @@ const sunucu = http.createServer(async (req, res) => {
       if (u.pathname === "/odeme/link") return await linkKontrol(req, res);
       if (u.pathname === "/uyelik/giris") return await uyelikGiris(req, res);
       if (u.pathname === "/dinleme") return await dinlemeSay(req, res);
+      if (u.pathname === "/sanatci/giris") return await sanatciGiris(req, res);
+      if (u.pathname === "/sanatci/eposta") return await sanatciEposta(req, res);
       if (u.pathname === "/yukle/baslat") return await yuklemeBaslat(req, res);
       if (u.pathname === "/radyo/gonder") return await radyoGonder(req, res);
       const yb = /^\/yukle\/([a-f0-9]{12})\/bitir$/.exec(u.pathname);

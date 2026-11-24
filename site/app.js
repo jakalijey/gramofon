@@ -195,6 +195,7 @@
   });
   var oda = "salon", kapiSaat = 0, salonListe = [];
   $(".duzen").dataset.oda = oda;
+  document.documentElement.dataset.oda = oda;
   $(".duzen").dataset.sahne = oda;
   history.replaceState({ oda: "salon" }, "");
   function yerlestir(el, y) {
@@ -439,6 +440,7 @@
     var eski = oda;
     oda = yeni;
     $(".duzen").dataset.oda = oda;
+    document.documentElement.dataset.oda = oda;
     if (kayit === "degistir") history.replaceState({ oda }, "");
     else if (kayit) history.pushState({ oda }, "");
     if (eski === "kayit" && window.GramofonKayit) GramofonKayit.cik();

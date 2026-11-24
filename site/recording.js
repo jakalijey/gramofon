@@ -181,9 +181,127 @@
       }
       soyle("Hey there! Got a song for the gramophone?", [
         { yazi: "Yes, I have a song", is: sarkimVar },
+        { yazi: "My songs and earnings", is: sarkilarim, ikincil: true },
         { yazi: "Just here to listen", is: dinlemeye, ikincil: true }
       ], "istiyor");
     });
+  }
+  function sarkilarim() {
+    temizle();
+    soyle("Sure. Connect the wallet you paid the upload fee with, and I’ll pull up your songs.", [], "istiyor");
+    GramofonOdeme.sanatciGiris(function() {
+    }).then(function(r) {
+      soyle("Here are your songs. Thanks for being part of Gramofon!", [
+        { yazi: "Back to my songs", is: function() {
+          panelAc(r);
+        } },
+        { yazi: "Just here to listen", is: dinlemeye, ikincil: true }
+      ], "istiyor");
+      panelAc(r);
+    }, function(e) {
+      soyle((e && e.message ? e.message : "That didn’t work.") + " Want to try again?", [
+        { yazi: "Try again", is: sarkilarim },
+        { yazi: "Just here to listen", is: dinlemeye, ikincil: true }
+      ], "istiyor");
+    });
+  }
+  function bchYaz(sat) {
+    return (sat / 1e8).toFixed(8).replace(/0+$/, "").replace(/\.$/, "");
+  }
+  function paraYaz(sat, usd) {
+    var d = usd && sat > 0 ? sat * usd / 1e8 : 0;
+    return bchYaz(sat) + " BCH" + (!d ? "" : d >= 0.01 ? " (about $" + d.toFixed(2) + ")" : " (less than one cent)");
+  }
+  var DURUM_YAZI = { onay: "On the gramophone", inceleniyor: "Being reviewed", kanit: "Waiting for proof", eslesti: "Matched another song", ret: "Not approved" };
+  function panelAc(r) {
+    var eski = document.querySelector(".sanatci-ort");
+    if (eski) eski.remove();
+    var ort = document.createElement("div");
+    ort.className = "odeme-ort sanatci-ort";
+    ort.innerHTML = '<div class="odeme-kutu sanatci-panel" role="dialog" aria-modal="true" aria-labelledby="sp-baslik"><h2 id="sp-baslik">Your songs and earnings</h2><div class="sp-icerik"></div><div class="odeme-dugmeler"></div><p class="odeme-durum" role="status" aria-live="polite"></p></div>';
+    document.body.appendChild(ort);
+    var q = function(s) {
+      return ort.querySelector(s);
+    };
+    function kapat() {
+      document.removeEventListener("keydown", esc, true);
+      ort.remove();
+    }
+    function esc(e) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        kapat();
+      }
+    }
+    document.addEventListener("keydown", esc, true);
+    function yaz(o) {
+      var h = "";
+      o.sarkilar.forEach(function(s) {
+        h += '<div class="sp-sarki"><p class="sp-ad"></p><p class="sp-durum"></p>' + (s.durum === "onay" ? '<p class="sp-sayi"></p>' : "") + "</div>";
+      });
+      h += '<div class="sp-para"><p class="sp-bu-ay"></p><p class="sp-bakiye"></p><p class="sp-odenen"></p><p class="sp-cuzdan"></p></div><div class="sp-eposta"></div>';
+      q(".sp-icerik").innerHTML = h;
+      var kutular = ort.querySelectorAll(".sp-sarki");
+      o.sarkilar.forEach(function(s, i) {
+        kutular[i].dataset.durum = s.durum;
+        kutular[i].querySelector(".sp-ad").textContent = "“" + s.ad + "” · " + s.sanatci;
+        kutular[i].querySelector(".sp-durum").textContent = DURUM_YAZI[s.durum] || s.durum;
+        var y = kutular[i].querySelector(".sp-sayi");
+        if (y) y.textContent = "This month: " + s.buAy.sayildi + (s.buAy.sayildi === 1 ? " play" : " plays") + " from " + s.buAy.dinleyen + (s.buAy.dinleyen === 1 ? " listener" : " listeners") + (s.buAy.kendi ? " (including " + s.buAy.kendi + " of your own)" : "") + " · All time: " + s.toplam + (s.toplam === 1 ? " play" : " plays");
+      });
+      var odenen = (o.odenen || []).reduce(function(t, x) {
+        return t + x.sat;
+      }, 0);
+      q(".sp-bu-ay").textContent = "Your share this month so far: " + paraYaz(o.buAyPay, o.usd) + ".";
+      q(".sp-bakiye").textContent = "Balance from past months: " + paraYaz(o.bakiye, o.usd) + ". Paid out once it reaches $" + o.esik + ".";
+      q(".sp-odenen").textContent = odenen ? "Paid to you so far: " + paraYaz(odenen, o.usd) + " in " + o.odenen.length + (o.odenen.length === 1 ? " payment." : " payments.") : "No payouts yet.";
+      q(".sp-cuzdan").textContent = "Payouts go to " + o.cuzdan.slice(0, 18) + "…" + o.cuzdan.slice(-6) + ", the wallet you paid the upload fee from.";
+      var e = q(".sp-eposta");
+      if (!o.onayli) {
+        e.textContent = "Once a song is on the gramophone, you can get a monthly email with your plays and earnings here.";
+        return;
+      }
+      if (o.eposta) {
+        e.innerHTML = '<p></p><button type="button" class="sp-dugme ikincil">Stop monthly emails</button>';
+        e.querySelector("p").textContent = "Your monthly report goes to " + o.eposta + ".";
+        e.querySelector("button").addEventListener("click", function() {
+          kaydet(null);
+        });
+      } else {
+        e.innerHTML = '<label class="sp-etiket" for="sp-adres">Get a monthly email with your plays and earnings</label><div class="sp-satir"><input type="email" id="sp-adres" maxlength="120" autocomplete="email" inputmode="email" placeholder="you@example.com"><button type="button" class="sp-dugme">Email me</button></div>';
+        e.querySelector("button").addEventListener("click", function() {
+          var v = q("#sp-adres").value.trim();
+          if (!EPOSTA.test(v)) {
+            q(".odeme-durum").textContent = "That email doesn’t look right.";
+            q("#sp-adres").focus();
+            return;
+          }
+          kaydet(v);
+        });
+      }
+    }
+    function kaydet(adres) {
+      q(".odeme-durum").textContent = "Saving…";
+      GramofonOdeme.sanatciEposta(r.bilet, adres).then(function(o) {
+        if (o.durum !== 200) {
+          q(".odeme-durum").textContent = o.durum === 401 ? "Your session ended. Close this and connect your wallet again." : "That didn’t work. Please try again.";
+          return;
+        }
+        r = Object.assign({}, r, o);
+        yaz(r);
+        q(".odeme-durum").textContent = adres ? "Done. Your first report comes at the start of next month." : "Done. No more monthly emails.";
+      }, function() {
+        q(".odeme-durum").textContent = "That didn’t work. Please try again.";
+      });
+    }
+    var kapatDugme = document.createElement("button");
+    kapatDugme.type = "button";
+    kapatDugme.textContent = "Close";
+    kapatDugme.addEventListener("click", kapat);
+    q(".odeme-dugmeler").appendChild(kapatDugme);
+    yaz(r);
+    kapatDugme.focus({ preventScroll: true });
   }
   function gizle() {
     $("#konusma").hidden = true;

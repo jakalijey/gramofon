@@ -236,30 +236,30 @@ async function ode(a, bilgi, yukleme) {
     }
   }
 }
-async function giris(a, bilgi) {
+async function cuzdanla(a, bilgi, s) {
   const dokunmatik = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
   const test = !!a.test;
-  const p = pencere(test ? "Sign in with your wallet (test network)" : "Sign in with your wallet", (test ? "Test network: switch Paytaca to Chipnet first (Settings: Use Chipnet Network). " : "") + (dokunmatik ? "Scan this code from another device with the wallet you paid with, or tap “Open wallet app”." : "Scan this code with the wallet you paid with (Paytaca or Selene).") + " Nothing is paid and nothing is signed: Gramofon only looks up your membership.");
+  const p = pencere(test ? s.baslik + " (test network)" : s.baslik, (test ? "Test network: switch Paytaca to Chipnet first (Settings: Use Chipnet Network). " : "") + (dokunmatik ? "Scan this code from another device with the wallet you paid with, or tap “Open wallet app”." : "Scan this code with the wallet you paid with (Paytaca or Selene).") + " " + s.aciklama);
   let b = null;
   try {
     bilgi("Waiting for your wallet…");
     b = await baglan(p, location.origin + "/icon-192.png");
     p.qrGizle();
     p.dugmeleriSil();
-    p.baslik("Looking for your membership…", `Connected to ${b.cuzdan}.`);
+    p.baslik(s.bakiyor, `Connected to ${b.cuzdan}.`);
     const yollar = typeof b.mgr.getSessionPaths === "function" ? b.mgr.getSessionPaths() || [] : [];
     const xpub = yollar.map((y) => y && y.xpub).filter((x) => typeof x === "string").slice(0, 4);
     if (!xpub.length) throw new Error("The wallet did not share its keys.");
-    const r = await a.postJson("/uyelik/giris", { xpub });
+    const r = await a.postJson(s.uc, { xpub });
     if (r.durum === 200 && r.bilet) {
       p.kapat();
       return r;
     }
-    if (r.durum !== 404) throw new Error(r.durum === 429 ? "Too many tries. Please wait a minute and try again." : "Could not check your membership.");
-    p.baslik("No membership on this wallet", `This wallet has no active membership${test ? " on the test network" : ""}. If you paid with another wallet, sign in with that one. Otherwise drop a token to start a month of music.`);
+    if (r.durum !== 404) throw new Error(r.durum === 429 ? "Too many tries. Please wait a minute and try again." : "Something went wrong. Please try again.");
+    p.baslik(s.yokBaslik, s.yokYazi(test));
     await new Promise((ok) => p.dugme("Close", ok));
     p.kapat();
-    throw new Error("No membership on this wallet.");
+    throw new Error(s.yokBaslik + ".");
   } catch (e) {
     p.kapat();
     throw e;
@@ -276,4 +276,20 @@ async function giris(a, bilgi) {
     }
   }
 }
-window.GramofonOdemeAgir = { uyelikAl: (a, bilgi) => ode(a, bilgi, false), yuklemeAl: (a, bilgi) => ode(a, bilgi, true), giris };
+const giris = (a, bilgi) => cuzdanla(a, bilgi, {
+  baslik: "Sign in with your wallet",
+  uc: "/uyelik/giris",
+  bakiyor: "Looking for your membership…",
+  aciklama: "Nothing is paid and nothing is signed: Gramofon only looks up your membership.",
+  yokBaslik: "No membership on this wallet",
+  yokYazi: (test) => `This wallet has no active membership${test ? " on the test network" : ""}. If you paid with another wallet, sign in with that one. Otherwise drop a token to start a month of music.`
+});
+const sanatci = (a, bilgi) => cuzdanla(a, bilgi, {
+  baslik: "Your songs and earnings",
+  uc: "/sanatci/giris",
+  bakiyor: "Looking for your songs…",
+  aciklama: "Use the wallet you paid the upload fee with. Nothing is paid and nothing is signed.",
+  yokBaslik: "No songs from this wallet",
+  yokYazi: (test) => `We couldn’t find a song handed in with this wallet${test ? " on the test network" : ""}. Try the wallet you paid the upload fee from.`
+});
+window.GramofonOdemeAgir = { uyelikAl: (a, bilgi) => ode(a, bilgi, false), yuklemeAl: (a, bilgi) => ode(a, bilgi, true), giris, sanatci };

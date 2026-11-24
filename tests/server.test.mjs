@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import crypto from 'node:crypto';
 
 const SECRET = crypto.randomBytes(24).toString('hex');
+const ARTIST = 'bitcoincash:q' + 'y'.repeat(41);   // paid the upload fee for s1
 const PORT = 18000 + Math.floor(Math.random() * 1000);
 const SERVER = new URL('../server/server.mjs', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 let dir, srv;
@@ -25,7 +26,11 @@ const send = (seed, t) => call('/radyo/gonder', { method: 'POST', headers: { 'co
 
 before(async () => {
   dir = mkdtempSync(join(tmpdir(), 'gramofon-test-'));
-  const records = { 'odemeler.json': { txid: {}, teklif: {} }, 'bekleyenler.json': { liste: [] }, 'parmakizi.json': { kayitlar: {} }, 'radyo.json': { liste: [] },
+  const now = Math.floor(Date.now() / 1000);
+  const records = {
+    'odemeler.json': { txid: { 'upload-fee': { kim: ARTIST, sat: 5000, zaman: now - 86400, bitis: now, n: '', amac: 'y' } }, teklif: {} },
+    'bekleyenler.json': { liste: [{ id: 'a1b2c3d4e5f6', txid: 'upload-fee', durum: 'onay', katalog: 's1', ad: 'Song One', sanatci: 'Artist' }] },
+    'parmakizi.json': { kayitlar: {} }, 'radyo.json': { liste: [] },
     'dinlemeler.json': { olay: [] }, 'sanatcilar.json': { aylar: {}, odenen: [] }, 'raporlar.json': { liste: [] },
     'katalog-kopya.json': { sarkilar: [{ id: 's1', ad: 'Song One', sanatci: 'Artist', dosya: 's1.flac' }] } };
   for (const [f, v] of Object.entries(records)) writeFileSync(join(dir, f), JSON.stringify(v));
@@ -104,4 +109,14 @@ test('a play counts once; another one right after looks automated', async () => 
   const trial = await play('s1', ticket('deneme'));
   assert.equal(trial.body.sayildi, false);
   assert.equal(trial.body.neden, 'deneme');
+});
+
+test('an artist who is a member counts when playing their own song, within the same limits', async () => {
+  const own = await play('s1', ticket(ARTIST));
+  assert.equal(own.status, 200);
+  assert.equal(own.body.sayildi, true);
+  assert.equal(own.body.neden, 'kendi');
+  const again = await play('s1', ticket(ARTIST));
+  assert.equal(again.body.sayildi, false);
+  assert.equal(again.body.neden, 'hizli');
 });

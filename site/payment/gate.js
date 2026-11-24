@@ -298,6 +298,16 @@
         return { bitis: new Date(r.bitis * 1e3) };
       });
     },
+    sanatciGiris: function(bilgi) {
+      return agirYukle().then(function(m) {
+        if (!m.sanatci) throw new Error("Please reload the page and try again.");
+        return m.sanatci({ postJson, test: AG.test }, bilgi || function() {
+        });
+      });
+    },
+    sanatciEposta: function(bilet, eposta) {
+      return postJson("/sanatci/eposta", eposta ? { bilet, eposta } : { bilet, sil: true });
+    },
     yuklemeHakki: function() {
       return gecerliHak();
     },
