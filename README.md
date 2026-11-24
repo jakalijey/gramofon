@@ -16,6 +16,10 @@ Live: https://gramofon.heylogram.com · Test network (free Chipnet coins): https
   playlist is then yours to play, shuffle and add to your own playlist.
 - **Sign in with your wallet.** On another device, or after clearing your browser, connect the wallet you paid with:
   the server derives its addresses from the wallet's public keys and finds your payment. Nothing is paid or signed.
+- **Artists get paid.** Half of every membership goes to the artists that member played, split by plays. A play counts
+  after 30 seconds; the artist's own plays and plays that look automated don't count. Shares are added up each month and
+  paid in BCH to the wallet that paid the upload fee; balances under $1 carry over. Artists can get a monthly email with
+  their plays, listeners and earnings.
 - **Radio.** The gramophone composes songs itself, new ones on every visit. Like one? Send it to the gramophone for free:
   it gets a title, an artist name and a drawn cover of its own, and everyone can play it. These artists are made up and marked
   "from the radio".
@@ -31,7 +35,7 @@ Live: https://gramofon.heylogram.com · Test network (free Chipnet coins): https
 | Site | `site/` | Plain HTML, CSS and JavaScript, no framework: `app.js` runs the hall and the gramophone room, `recording.js` the recording room, `player.js` the music. The phone gets its own layout (portrait and landscape). |
 | Music | `site/engine/gramofon-music.js` | The radio composer: the same seed always gives the same song, in the browser. |
 | Payments | `payment/` | Bitcoin Cash with libauth and WizardConnect, bundled with esbuild into `site/payment/payment.js`. |
-| Server | `server/` | Node 22: song catalog, streaming with a membership ticket, payment checks, artist uploads, the radio list. |
+| Server | `server/` | Node 22: song catalog, streaming with a membership ticket, payment checks, wallet sign-in, artist uploads, play counts and monthly artist shares, the radio list. |
 | Legal | `legal/` | Terms and privacy, published as `/terms` and `/privacy`. |
 
 Names inside the code (functions, variables, server messages) are in Turkish, the language Gramofon is written in. Everything a
@@ -51,6 +55,10 @@ Gramofon was built from scratch for BCH BLAZE 2026 (Mainnet track).
   `bitcoincash:zrcq3lg6h3hdl04k0l8fzsger88yvwqvxuswgq9yhe`
 
 Contact: gramofon@heylogram.com
+
+## Security
+
+Please report security problems privately. See [SECURITY.md](SECURITY.md).
 
 ## License
 

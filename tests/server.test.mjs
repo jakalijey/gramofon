@@ -25,7 +25,9 @@ const send = (seed, t) => call('/radyo/gonder', { method: 'POST', headers: { 'co
 
 before(async () => {
   dir = mkdtempSync(join(tmpdir(), 'gramofon-test-'));
-  const records = { 'odemeler.json': { txid: {}, teklif: {} }, 'bekleyenler.json': { liste: [] }, 'parmakizi.json': { kayitlar: {} }, 'radyo.json': { liste: [] } };
+  const records = { 'odemeler.json': { txid: {}, teklif: {} }, 'bekleyenler.json': { liste: [] }, 'parmakizi.json': { kayitlar: {} }, 'radyo.json': { liste: [] },
+    'dinlemeler.json': { olay: [] }, 'sanatcilar.json': { aylar: {}, odenen: [] }, 'raporlar.json': { liste: [] },
+    'katalog-kopya.json': { sarkilar: [{ id: 's1', ad: 'Song One', sanatci: 'Artist', dosya: 's1.flac' }] } };
   for (const [f, v] of Object.entries(records)) writeFileSync(join(dir, f), JSON.stringify(v));
   srv = spawn(process.execPath, [SERVER], {
     env: { ...process.env, PORT: String(PORT), VERI_KLASORU: dir, DEPO_UC: 'http://127.0.0.1:9', DEPO_KOVA: 'test', DEPO_ERISIM: 'test', DEPO_GIZLI: 'test', GRAMOFON_BILET_SIRRI: SECRET },
@@ -81,4 +83,25 @@ test('five songs a day per member', async () => {
   assert.equal(sixth.status, 429);
   assert.equal(sixth.body.sinir, 5);
   assert.equal((await send(7005, ticket('e'))).status, 200);
+});
+
+const play = (id, t) => call('/dinleme', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, bilet: t }) });
+const MEMBER = 'bitcoincash:q' + 'z'.repeat(41);
+
+test('a play needs a valid ticket and a song on the gramophone', async () => {
+  assert.equal((await play('s1', 'x.y')).status, 401);
+  assert.equal((await play('s1', ticket(MEMBER, -60))).status, 401);
+  assert.equal((await play('no-such-song', ticket(MEMBER))).status, 404);
+});
+
+test('a play counts once; another one right after looks automated', async () => {
+  const first = await play('s1', ticket(MEMBER));
+  assert.equal(first.status, 200);
+  assert.equal(first.body.sayildi, true);
+  const again = await play('s1', ticket(MEMBER));
+  assert.equal(again.body.sayildi, false);
+  assert.equal(again.body.neden, 'hizli');
+  const trial = await play('s1', ticket('deneme'));
+  assert.equal(trial.body.sayildi, false);
+  assert.equal(trial.body.neden, 'deneme');
 });

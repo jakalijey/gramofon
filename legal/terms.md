@@ -1,6 +1,6 @@
 # Gramofon Terms of Use
 
-Last updated: 21 November 2026
+Last updated: 24 November 2026
 
 Gramofon is a music app made by Heylogram. By using it you accept these terms.
 
@@ -25,6 +25,12 @@ Gramofon is a music app made by Heylogram. By using it you accept these terms.
 - If the song has already been released, we need proof that it's yours before it goes on the gramophone. Proof is something we can check: a short code we give you, posted on the artist's official account or website; an email from the artist's management, label or distributor; or the release on your verified artist profile. Without proof, the song is not accepted and the fee is not refunded.
 - Every song that passes the check is listened to by hand, and we may approve or decline any song. If we decline a song you made yourself (for example, it isn't a fit for Gramofon), we send the fee back to the wallet you paid from.
 - You keep all rights to your music. By uploading, you let Gramofon store your song and play it to Gramofon members. You can ask us to take your song down at any time: gramofon@heylogram.com.
+
+## Artist earnings
+
+- Half of every membership goes to the artists that member plays, split by plays. A play counts after a member listens to a song for 30 seconds. Plays from the artist's own wallet and plays that look automated are not counted.
+- Earnings are added up once a month and paid in Bitcoin Cash to the wallet you paid the upload fee from. If your balance is below $1, it carries over to the next month.
+- If you asked for it when you uploaded, we email you a monthly report: how many plays and listeners each of your songs had, your share and your balance.
 
 ## Payments
 

@@ -34,7 +34,13 @@
       if (dosyaCaliyorMu()) sonraki();
     });
     au.addEventListener("timeupdate", function() {
-      if (dosyaCaliyorMu()) dinle("zaman", durum());
+      if (dosyaCaliyorMu()) {
+        sayacIlerle();
+        dinle("zaman", durum());
+      }
+    });
+    au.addEventListener("seeked", function() {
+      sonZaman = au.currentTime;
     });
     au.addEventListener("error", function() {
       if (!dosyaCaliyorMu() || !au.getAttribute("src") || au.getAttribute("src") === SESSIZ) return;
@@ -60,6 +66,28 @@
   function sesiAc() {
     if (ctx && ctx.state !== "running") ctx.resume().catch(function() {
     });
+  }
+  var sayilan = null, dinlenen = 0, sonZaman = 0;
+  function sayacSifirla() {
+    sayilan = null;
+    dinlenen = 0;
+    sonZaman = 0;
+  }
+  function sayacIlerle() {
+    var p = parca(), t = au.currentTime, d = t - sonZaman;
+    sonZaman = t;
+    if (!p || p.tur === "uretim" || !p.id || sayilan === p || au.paused || au.seeking || !(d > 0) || d > 2) return;
+    dinlenen += d;
+    if (dinlenen < 30) return;
+    sayilan = p;
+    var b = window.GramofonUyelik && window.GramofonUyelik.bilet ? window.GramofonUyelik.bilet() : "";
+    if (!b) return;
+    var api = window.GramofonAg ? window.GramofonAg.api : "https://api.heylogram.com/gramofon";
+    try {
+      fetch(api + "/dinleme", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: p.id, bilet: b }), keepalive: true }).catch(function() {
+      });
+    } catch (e) {
+    }
   }
   var bpmSayac = 0;
   function tempoDur() {
@@ -164,6 +192,7 @@
       sesiAc();
       if (kazanc) kazanc.gain.value = Math.pow(10, Math.max(-12, Math.min(6, Number(p.kazanc) || 0)) / 20);
       au.src = typeof p.dosya === "function" ? p.dosya() : p.dosya;
+      sayacSifirla();
       var s = au.play();
       if (s && s.catch) s.catch(function(e) {
         if (e && e.name === "AbortError") return;

@@ -312,6 +312,7 @@
   }
   $("#y-haber").addEventListener("change", function() {
     $("#y-eposta-alan").hidden = !this.checked;
+    $("#y-rapor-alan").hidden = !this.checked;
     if (this.checked) $("#y-eposta").focus();
   });
   function duzeldi(e) {
@@ -333,7 +334,7 @@
   function gonder() {
     if (yukleniyor) return;
     var ses = $("#y-ses").files[0], kapak = $("#y-kapak").files[0], ad = $("#y-ad").value.trim(), sanatci = $("#y-sanatci").value.trim();
-    var haber = $("#y-haber").checked, eposta = $("#y-eposta").value.trim();
+    var haber = $("#y-haber").checked, eposta = $("#y-eposta").value.trim(), rapor = haber && $("#y-rapor").checked;
     var sorun = !ses ? ["#y-ses", "Pick your song file."] : ses.size > 200 * 1048576 ? ["#y-ses", "That file is over 200 MB."] : kapak && kapak.size > 15 * 1048576 ? ["#y-kapak", "The cover picture is over 15 MB."] : !ad ? ["#y-ad", "Write the song name."] : !sanatci ? ["#y-sanatci", "Write the artist name."] : haber && !EPOSTA.test(eposta) ? ["#y-eposta", "That email doesn’t look right."] : !$("#y-sahibim").checked ? ["#y-sahibim", "Please confirm the song is yours to share."] : null;
     document.querySelectorAll("#yukleme-form [aria-invalid]").forEach(function(x) {
       x.removeAttribute("aria-invalid");
@@ -355,7 +356,7 @@
     ilerleme("bekle");
     durumYaz("Getting the desk ready…");
     var toplam = ses.size + (kapak ? kapak.size : 0);
-    post("/yukle/baslat", { hak, ad, sanatci, haber, eposta: haber ? eposta : "", sahibim: true }).then(function(r) {
+    post("/yukle/baslat", { hak, ad, sanatci, haber, eposta: haber ? eposta : "", rapor, sahibim: true }).then(function(r) {
       if (r.durum === 401 || r.durum === 409) {
         hakSil();
         throw new Error(r.durum === 409 ? "This payment was already used for a song." : "Your upload pass has expired. Talk to the man at the desk again.");
@@ -383,6 +384,7 @@
       formKilit(false);
       $("#yukleme-form").reset();
       $("#y-eposta-alan").hidden = true;
+      $("#y-rapor-alan").hidden = true;
       ilerleme(null);
       durumYaz("");
       if (window.GramofonSahne) GramofonSahne.bekleyenleriAl();

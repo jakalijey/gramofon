@@ -159,6 +159,22 @@
     $("#test-serit").hidden = false;
     olcekKur();
   }
+  (function() {
+    var b = $("#saklama"), K = "gramofon-saklama-bildirimi", goruldu = false;
+    try {
+      goruldu = localStorage.getItem(K) === "1";
+    } catch (e) {
+    }
+    if (!b || goruldu) return;
+    b.hidden = false;
+    $("#saklama-tamam").addEventListener("click", function() {
+      b.hidden = true;
+      try {
+        localStorage.setItem(K, "1");
+      } catch (e) {
+      }
+    });
+  })();
   $("#blaze-adres").addEventListener("click", function() {
     var a = this.getAttribute("data-adres"), y = $("#blaze-durum"), bitti = function(m) {
       y.textContent = m;

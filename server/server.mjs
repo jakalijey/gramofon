@@ -48,9 +48,9 @@ function imzali(yontem, yol, ozet = BOS) {
     authorization: `AWS4-HMAC-SHA256 Credential=${ERISIM}/${kapsam}, SignedHeaders=${adlar.join(";")}, Signature=${imza}`
   };
 }
-function depo(yontem, anahtar, ek = {}) {
+function depo(yontem, anahtar, ek = {}, secenek = {}) {
   const yol = `/${KOVA}/${anahtar}`;
-  return fetch(UC + yol, { method: yontem, headers: { ...imzali(yontem, yol), ...ek } });
+  return fetch(UC + yol, { method: yontem, headers: { ...imzali(yontem, yol), ...ek }, ...secenek });
 }
 function depoKoy(anahtar, govde, tur, ozet, boy) {
   const yol = `/${KOVA}/${anahtar}`, u = new URL(UC + yol);
@@ -93,9 +93,13 @@ const biletDogru = (b) => {
   const v = paketCoz("", b);
   return !!v && Number(v.b) * 1e3 > Date.now();
 };
-let onbellek = { veri: null, zaman: 0 };
-async function katalog() {
-  if (onbellek.veri && Date.now() - onbellek.zaman < 6e4) return onbellek.veri;
+let onbellek = { veri: null, zaman: 0 }, katalogSoru = null;
+const KATALOG_KOPYA = path.join(VERI, "katalog-kopya.json");
+try {
+  onbellek = { veri: JSON.parse(fs.readFileSync(KATALOG_KOPYA, "utf8")), zaman: 0 };
+} catch {
+}
+async function katalogCek() {
   const c = await depo("GET", "katalog.json");
   let veri = { sarkilar: [] };
   if (c.ok) veri = await c.json();
@@ -104,26 +108,60 @@ async function katalog() {
     if (c.status !== 404) throw new Error("depo " + c.status);
   }
   onbellek = { veri, zaman: Date.now() };
+  fs.promises.writeFile(KATALOG_KOPYA + ".yeni", JSON.stringify(veri), { mode: 384 }).then(() => fs.promises.rename(KATALOG_KOPYA + ".yeni", KATALOG_KOPYA)).catch(() => {
+  });
   return veri;
 }
+async function katalog(taze) {
+  if (!taze && onbellek.veri && Date.now() - onbellek.zaman < 6e4) return onbellek.veri;
+  if (!katalogSoru) katalogSoru = katalogCek().finally(() => {
+    katalogSoru = null;
+  });
+  if (!taze && onbellek.veri) {
+    katalogSoru.catch(() => {
+    });
+    return onbellek.veri;
+  }
+  return katalogSoru;
+}
 const GUVENLI = ["id", "ad", "sanatci", "sure", "bpm", "ilkVurus", "renk", "tur", "hava", "kazanc", "kapak"];
+const KAPAK_KLASORU = path.join(VERI, "kapak-onbellek");
+try {
+  fs.mkdirSync(KAPAK_KLASORU, { recursive: true });
+} catch {
+}
+const kapakYolu = (s, boy) => path.join(KAPAK_KLASORU, `${s.id}-${boy}-${String(s.kapak).replace(/[^0-9a-z]/gi, "")}.jpg`);
+async function kapakAl(s, boy) {
+  const yol = kapakYolu(s, boy);
+  try {
+    return await fs.promises.readFile(yol);
+  } catch {
+  }
+  const c = await depo("GET", `kapaklar/${s.id}-${boy}.jpg`);
+  if (!c.ok) {
+    await c.body?.cancel();
+    return c.status === 404 ? null : Promise.reject(new Error("depo " + c.status));
+  }
+  const b = Buffer.from(await c.arrayBuffer());
+  try {
+    await fs.promises.writeFile(yol + ".yeni", b, { mode: 384 });
+    await fs.promises.rename(yol + ".yeni", yol);
+  } catch {
+  }
+  return b;
+}
 async function kapak(req, res, id, boy) {
   const s = ((await katalog()).sarkilar || []).find((x) => x.id === id);
   if (!s || !s.kapak) return yanit(req, res, 404, { hata: "kapak yok" });
-  const c = await depo("GET", `kapaklar/${id}-${boy}.jpg`);
-  if (!c.ok) {
-    await c.body?.cancel();
-    return yanit(req, res, c.status === 404 ? 404 : 502, { hata: "depo" });
+  let b;
+  try {
+    b = await kapakAl(s, boy);
+  } catch {
+    return yanit(req, res, 502, { hata: "depo" });
   }
-  const h = { "content-type": "image/jpeg", "cache-control": "public, max-age=86400" };
-  const uzunluk = c.headers.get("content-length");
-  if (uzunluk) h["content-length"] = uzunluk;
-  res.writeHead(200, { ...cors(req), ...h });
-  if (req.method === "HEAD") {
-    await c.body?.cancel();
-    return res.end();
-  }
-  Readable.fromWeb(c.body).on("error", () => res.destroy()).pipe(res);
+  if (!b) return yanit(req, res, 404, { hata: "kapak yok" });
+  res.writeHead(200, { ...cors(req), "content-type": "image/jpeg", "cache-control": "public, max-age=86400", "content-length": String(b.length) });
+  res.end(req.method === "HEAD" ? void 0 : b);
 }
 const disari = (s) => Object.fromEntries(GUVENLI.filter((k) => s[k] != null).map((k) => [k, s[k]]));
 const SES_KLASORU = path.join(VERI, "onbellek");
@@ -360,7 +398,15 @@ async function kayitAc(dosya, anahtar, bos) {
   } catch (e) {
     if (e.code !== "ENOENT") throw e;
   }
-  const c = await depo("GET", anahtar);
+  let c;
+  for (let i = 1; ; i++) {
+    try {
+      c = await depo("GET", anahtar, {}, { signal: AbortSignal.timeout(2e4) });
+      break;
+    } catch (e) {
+      if (i >= 3) throw e;
+    }
+  }
   if (c.status === 404) {
     await c.body?.cancel();
     return bos;
@@ -855,6 +901,7 @@ async function yuklemeBaslat(req, res) {
   if (!h) return yanit(req, res, 401, { hata: "hak yok" });
   if (h.k.sarki) return yanit(req, res, 409, { hata: "hak kullanıldı", id: h.k.sarki });
   const ad = temiz(g.ad, 80), sanatci = temiz(g.sanatci, 80), haber = g.haber === true, eposta = haber ? temiz(g.eposta, 120) : "";
+  const rapor = haber && g.rapor === true;
   if (!ad || !sanatci) return yanit(req, res, 400, { hata: "ad ve sanatçı gerekli" });
   if (haber && !EPOSTA.test(eposta)) return yanit(req, res, 400, { hata: "e-posta" });
   if (g.sahibim !== true) return yanit(req, res, 400, { hata: "hak onayı" });
@@ -865,7 +912,7 @@ async function yuklemeBaslat(req, res) {
     h.k.taslak = e.id;
     await kayitYaz();
   }
-  Object.assign(e, { ad, sanatci, haber, eposta, zaman: simdiSn() });
+  Object.assign(e, { ad, sanatci, haber, eposta, rapor, zaman: simdiSn() });
   await bekleyenYaz();
   yanit(req, res, 200, { id: e.id, ses: !!e.ses, kapak: !!e.kapak });
 }
@@ -930,7 +977,7 @@ function makbuzYaz(e) {
     "",
     `Terms: ${SITE_ADRESI}/terms`,
     `Privacy: ${SITE_ADRESI}/privacy`,
-    "We keep your email address only to tell you about this song, and delete it after the review email.",
+    e.rapor ? "We keep your email address to tell you about this song and, as you asked, to send you a monthly report of plays and earnings while it is on Gramofon. Reply “stop” to end those reports." : "We keep your email address only to tell you about this song, and delete it after the review email.",
     "",
     "Questions? Just reply to this email.",
     "",
@@ -1106,6 +1153,195 @@ function herkeseBekleyenler() {
   const n = simdiSn();
   return bekleyen.liste.filter((e) => !e.deneme && (e.durum === "inceleniyor" || e.durum === "onay" && n - e.zaman < 14 * 86400 || e.durum === "ret" && n - e.zaman < 7 * 86400)).sort((a, b) => b.zaman - a.zaman).slice(0, 20).map((e) => ({ id: e.id, ad: e.ad, sanatci: e.sanatci, durum: e.durum, zaman: e.zaman }));
 }
+const DINLEMELER = path.join(VERI, "dinlemeler.json"), SANATCILAR = path.join(VERI, "sanatcilar.json"), RAPORLAR = path.join(VERI, "raporlar.json");
+const SANATCI_PAYI = 0.5, ODEME_ESIGI_USD = Number(E.ODEME_ESIGI_USD || 1);
+const DINLEME_KOD = { 1: "sayildi", 2: "kendi", 3: "hizli", 4: "gunluk", 5: "dongu" };
+let dinlemeler = { olay: [] }, sanatcilar = { aylar: {}, odenen: [] }, raporlar = { liste: [] };
+const dinlemeYaz = () => jsonYaz(DINLEMELER, dinlemeler, KAYIT_ONEK + "yonetim/dinlemeler.json");
+const sanatciYaz = () => jsonYaz(SANATCILAR, sanatcilar, KAYIT_ONEK + "yonetim/sanatcilar.json");
+const raporYaz = () => jsonYaz(RAPORLAR, raporlar, KAYIT_ONEK + "yonetim/raporlar.json");
+function sarkiSanatcisi(id) {
+  const e = bekleyen.liste.find((x) => x.katalog === id && x.durum === "onay");
+  const k = e && kayitlar.txid[e.txid];
+  return { kim: k && !k.deneme && ADRES_DESENI.test(k.kim || "") ? k.kim : "", eposta: e && e.raporEposta || "", ad: e ? e.sanatci : "" };
+}
+async function dinlemeSay(req, res) {
+  const g = await govdeOku(req, 2048);
+  const v = paketCoz("", String(g.bilet || ""));
+  if (!v || !(Number(v.b) * 1e3 > Date.now())) return yanit(req, res, 401, { hata: "bilet" });
+  const id = String(g.id || "");
+  if (!/^[a-z0-9-]{1,64}$/.test(id) || !((await katalog()).sarkilar || []).some((s) => s.id === id)) return yanit(req, res, 404, { hata: "şarkı yok" });
+  const u = String(v.u || ""), t = simdiSn();
+  if (!ADRES_DESENI.test(u)) return yanit(req, res, 200, { ok: true, sayildi: false, neden: "deneme" });
+  const benim = dinlemeler.olay.filter((o) => o[1] === u && o[3] === 1 && o[0] > t - 86400);
+  let kod = 1;
+  if (sarkiSanatcisi(id).kim === u) kod = 2;
+  else if (benim.length && t - benim[benim.length - 1][0] < 25) kod = 3;
+  else if (benim.length >= 150) kod = 4;
+  else if (benim.filter((o) => o[2] === id).length >= 25) kod = 5;
+  dinlemeler.olay.push([t, u, id, kod]);
+  if (dinlemeler.olay[0][0] < t - 400 * 86400) dinlemeler.olay = dinlemeler.olay.filter((o) => o[0] >= t - 400 * 86400);
+  await dinlemeYaz();
+  yanit(req, res, 200, { ok: true, sayildi: kod === 1, neden: DINLEME_KOD[kod] });
+}
+const ayAraligi = (ay) => {
+  const [y, m] = ay.split("-").map(Number);
+  return [Date.UTC(y, m - 1, 1) / 1e3, Date.UTC(y, m, 1) / 1e3];
+};
+function ayHesapla(ay) {
+  const [bas, son] = ayAraligi(ay), uyeSat = new Map();
+  for (const k of Object.values(kayitlar.txid)) {
+    if (k.amac === "y" || k.deneme || !ADRES_DESENI.test(k.kim || "") || !(k.bitis > k.zaman)) continue;
+    const ortak = Math.min(son, k.bitis) - Math.max(bas, k.zaman);
+    if (ortak > 0) uyeSat.set(k.kim, (uyeSat.get(k.kim) || 0) + k.sat * ortak / (k.bitis - k.zaman));
+  }
+  const sarki = {}, uyeDinleme = new Map();
+  const s0 = (id) => sarki[id] || (sarki[id] = { sayildi: 0, dinleyen: new Set(), kendi: 0, elenen: 0, sat: 0 });
+  for (const [t, u, id, kod] of dinlemeler.olay) {
+    if (t < bas || t >= son) continue;
+    const s = s0(id);
+    if (kod === 1) {
+      s.sayildi++;
+      s.dinleyen.add(u);
+      const d = uyeDinleme.get(u) || new Map();
+      d.set(id, (d.get(id) || 0) + 1);
+      uyeDinleme.set(u, d);
+    } else if (kod === 2) s.kendi++;
+    else s.elenen++;
+  }
+  let dagitilan = 0, dinlenmeyen = 0;
+  for (const [u, sat] of uyeSat) {
+    const pay = sat * SANATCI_PAYI, d = uyeDinleme.get(u);
+    if (!d) {
+      dinlenmeyen += pay;
+      continue;
+    }
+    const top = [...d.values()].reduce((a, b) => a + b, 0);
+    for (const [id, n] of d) {
+      s0(id).sat += pay * n / top;
+      dagitilan += pay * n / top;
+    }
+  }
+  const paylar = {};
+  const sarkilar = Object.entries(sarki).map(([id, s]) => {
+    const a = sarkiSanatcisi(id);
+    if (a.kim && s.sat > 0) paylar[a.kim] = (paylar[a.kim] || 0) + s.sat;
+    return { id, sayildi: s.sayildi, dinleyen: s.dinleyen.size, kendi: s.kendi, elenen: s.elenen, sat: Math.floor(s.sat), cuzdan: a.kim ? "var" : "yok" };
+  });
+  for (const k of Object.keys(paylar)) paylar[k] = Math.floor(paylar[k]);
+  return { ay, bas, son, uye: uyeSat.size, dagitilan: Math.floor(dagitilan), dinlenmeyen: Math.floor(dinlenmeyen), sarkilar, paylar };
+}
+function bakiye(kim, haric) {
+  let b = 0;
+  for (const [ay, a] of Object.entries(sanatcilar.aylar)) if (ay !== haric) b += a.paylar && a.paylar[kim] || 0;
+  for (const o of sanatcilar.odenen) if (o.kim === kim) b -= o.sat;
+  return b;
+}
+const bchYaz = (sat) => (sat / 1e8).toFixed(8).replace(/0+$/, "").replace(/\.$/, "");
+const dolarYaz = (sat, usd) => !usd ? "" : sat * usd / 1e8 >= 0.01 ? ` (about $${(sat * usd / 1e8).toFixed(2)})` : " (less than one cent)";
+function raporMetni(m, ayAdi, usd) {
+  const satirlar = m.sarkilar.map((s) => `- “${s.ad}”: ${s.sayildi} ${s.sayildi === 1 ? "play" : "plays"} from ${s.dinleyen} ${s.dinleyen === 1 ? "listener" : "listeners"}`);
+  const esik = m.bakiye * usd / 1e8 >= ODEME_ESIGI_USD;
+  const durum = !m.kim ? "We don’t have a wallet for your songs yet. Reply with your Bitcoin Cash address and we’ll pay your balance there." : !usd ? "We couldn’t read the BCH price today, so your balance carries over to next month." : esik ? `We’ll send it to your wallet ${m.kim.slice(0, 18)}…${m.kim.slice(-6)} in the next few days.` : `That is below our $${ODEME_ESIGI_USD} payout minimum, so it carries over to next month.`;
+  const govde = [
+    `Hi ${m.ad},`,
+    "",
+    `Here is your ${ayAdi} on Gramofon.`,
+    "",
+    ...satirlar,
+    "",
+    `Your share this month: ${bchYaz(m.pay)} BCH${dolarYaz(m.pay, usd)}.`,
+    `Your balance: ${bchYaz(m.bakiye)} BCH${dolarYaz(m.bakiye, usd)}.`,
+    durum,
+    "",
+    "How we count: a play counts after a member listens for 30 seconds. Half of every membership goes to the artists that member played, split by plays. Plays from your own wallet and plays that look automated are not counted.",
+    "",
+    `Terms: ${SITE_ADRESI}/terms`,
+    "Questions? Just reply to this email. To stop these monthly emails, reply “stop”.",
+    "",
+    "Gramofon",
+    ""
+  ].join("\n");
+  return { konu: `Gramofon: your plays in ${ayAdi}`, govde, odenecek: !!(m.kim && esik) };
+}
+async function ayRaporu(ay, onizle) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(ay)) throw kodlu(400, "ay");
+  if (!onizle && ayAraligi(ay)[1] > simdiSn()) throw kodlu(400, "ay bitmedi");
+  if (!onizle && sanatcilar.aylar[ay]) return { zaten: true, ay, ...sanatcilar.aylar[ay] };
+  const h = ayHesapla(ay);
+  let usd = 0;
+  try {
+    usd = await bchUsd();
+  } catch {
+  }
+  const kat = (await katalog()).sarkilar || [], ayAdi = new Date(ayAraligi(ay)[0] * 1e3).toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+  const kisiler = new Map();
+  for (const e of bekleyen.liste) {
+    if (e.durum !== "onay" || !e.katalog || !e.raporEposta) continue;
+    const a = sarkiSanatcisi(e.katalog), s = h.sarkilar.find((x) => x.id === e.katalog) || { sayildi: 0, dinleyen: 0 }, k = kat.find((x) => x.id === e.katalog);
+    if (!k) continue;
+    const m = kisiler.get(e.raporEposta) || { ad: e.sanatci, kim: a.kim, sarkilar: [] };
+    m.sarkilar.push({ ad: k.ad, sayildi: s.sayildi, dinleyen: s.dinleyen });
+    kisiler.set(e.raporEposta, m);
+  }
+  const mailler = [], odenecek = [];
+  for (const [eposta, m] of kisiler) {
+    m.pay = m.kim ? h.paylar[m.kim] || 0 : 0;
+    m.bakiye = m.kim ? Math.floor(bakiye(m.kim, ay) + m.pay) : 0;
+    const r = raporMetni(m, ayAdi, usd);
+    mailler.push({ eposta, konu: r.konu, govde: r.govde });
+  }
+  for (const kim of new Set([...Object.keys(h.paylar), ...sanatcilar.odenen.map((o) => o.kim)])) {
+    const b = Math.floor(bakiye(kim, ay) + (h.paylar[kim] || 0));
+    if (usd && b * usd / 1e8 >= ODEME_ESIGI_USD) odenecek.push({ kim, sat: b, usd: Number((b * usd / 1e8).toFixed(2)) });
+  }
+  if (!onizle) {
+    sanatcilar.aylar[ay] = { hesaplandi: simdiSn(), usd, uye: h.uye, dagitilan: h.dagitilan, dinlenmeyen: h.dinlenmeyen, sarkilar: h.sarkilar, paylar: h.paylar };
+    for (const m of mailler) raporlar.liste.push({ id: crypto.randomBytes(6).toString("hex"), ay, ...m, durum: "bekliyor", zaman: simdiSn() });
+    await sanatciYaz();
+    await raporYaz();
+  }
+  return { ay, usd, ...h, mail: mailler.length, odenecek, ...onizle ? { onizleme: mailler.map((m) => ({ konu: m.konu, govde: m.govde })) } : {} };
+}
+async function isit(yalniz) {
+  let kat;
+  try {
+    kat = (await katalog(!!yalniz)).sarkilar || [];
+  } catch {
+    return { hata: "katalog" };
+  }
+  const sonuc = [];
+  for (const s of kat) {
+    if (yalniz && s.id !== yalniz || !s.kapak) continue;
+    for (const boy of [160, 600]) await kapakAl(s, boy).catch(() => null);
+  }
+  for (const s of kat) {
+    if (yalniz && s.id !== yalniz) continue;
+    if (!/^[a-z0-9][a-z0-9._-]{0,90}$/.test(s.dosya || "")) continue;
+    try {
+      fs.statSync(path.join(SES_KLASORU, s.dosya));
+      continue;
+    } catch {
+    }
+    let dolu = 0;
+    try {
+      for (const a of fs.readdirSync(SES_KLASORU)) dolu += fs.statSync(path.join(SES_KLASORU, a)).size;
+    } catch {
+    }
+    if (dolu > SES_SINIRI * 0.8) break;
+    const t = Date.now();
+    while (iniyor.has(s.dosya)) await new Promise((ok) => setTimeout(ok, 500));
+    await diskeIndir(s.dosya);
+    sonuc.push({ id: s.id, sn: Math.round((Date.now() - t) / 100) / 10, diskte: fs.existsSync(path.join(SES_KLASORU, s.dosya)) });
+  }
+  return { indirilen: sonuc };
+}
+setTimeout(() => {
+  isit().catch(() => {
+  });
+  setInterval(() => isit().catch(() => {
+  }), 15 * 6e4);
+}, 2e4);
 function icerdenMi(req) {
   const a = req.socket.remoteAddress || "";
   return (a === "127.0.0.1" || a === "::1" || a === "::ffff:127.0.0.1") && !req.headers["x-forwarded-for"] && !req.headers["x-real-ip"];
@@ -1122,8 +1358,29 @@ async function yonetim(req, res, u) {
   if (req.method === "GET" && u.pathname === "/yonetim/makbuzlar") {
     return yanit(req, res, 200, { liste: bekleyen.liste.filter((e2) => e2.makbuz && e2.makbuz.durum === "bekliyor" && e2.eposta).map((e2) => ({ id: e2.id, eposta: e2.eposta, konu: e2.makbuz.konu, govde: e2.makbuz.govde })) });
   }
+  if (req.method === "GET" && u.pathname === "/yonetim/raporlar") {
+    return yanit(req, res, 200, { liste: raporlar.liste.filter((r) => r.durum === "bekliyor").map((r) => ({ id: r.id, eposta: r.eposta, konu: r.konu, govde: r.govde })) });
+  }
   if (req.method !== "POST") return yanit(req, res, 405, { hata: "yöntem" });
   const g = await govdeOku(req, u.pathname === "/yonetim/parmakizi" ? 262144 : 16384);
+  if (u.pathname === "/yonetim/ay-raporu") return yanit(req, res, 200, await ayRaporu(String(g.ay || ""), g.onizle === true));
+  const rp = /^\/yonetim\/rapor\/([a-f0-9]{12})$/.exec(u.pathname);
+  if (rp) {
+    const r = raporlar.liste.find((x) => x.id === rp[1]);
+    if (!r || !["gitti", "hata"].includes(g.durum)) return yanit(req, res, 404, { hata: "yok" });
+    Object.assign(r, { durum: g.durum, gonderildi: simdiSn() });
+    delete r.govde;
+    delete r.eposta;
+    await raporYaz();
+    return yanit(req, res, 200, { ok: true });
+  }
+  if (u.pathname === "/yonetim/sanatci-odendi") {
+    if (!ADRES_DESENI.test(String(g.kim || "")) || !(Number(g.sat) > 0) || !/^[0-9a-f]{64}$/.test(String(g.txid || ""))) return yanit(req, res, 400, { hata: "kim, sat, txid" });
+    sanatcilar.odenen.push({ kim: g.kim, sat: Math.floor(Number(g.sat)), txid: g.txid, zaman: simdiSn() });
+    await sanatciYaz();
+    return yanit(req, res, 200, { ok: true, bakiye: Math.floor(bakiye(g.kim)) });
+  }
+  if (u.pathname === "/yonetim/isit") return yanit(req, res, 200, await isit(typeof g.id === "string" ? g.id : ""));
   if (u.pathname === "/yonetim/parmakizi") {
     if (!/^(katalog|bekleyen):[a-z0-9-]{1,64}$/.test(String(g.anahtar || ""))) return yanit(req, res, 400, { hata: "anahtar" });
     if (g.sil === true) {
@@ -1187,7 +1444,12 @@ async function yonetim(req, res, u) {
   if (g.katalog != null) e.katalog = temiz(g.katalog, 64);
   if (g.bildirildi === true) {
     e.bildirildi = simdiSn();
+    if (e.rapor && e.durum === "onay" && e.eposta) e.raporEposta = e.eposta;
     e.eposta = "";
+  }
+  if (g.raporDur === true) {
+    delete e.raporEposta;
+    e.rapor = false;
   }
   if (g.makbuz === "yaz" && e.haber && e.eposta) e.makbuz = makbuzYaz(e);
   if (g.makbuz === "gitti" || g.makbuz === "hata") e.makbuz = { durum: g.makbuz, zaman: simdiSn() };
@@ -1211,6 +1473,12 @@ kayitlar = await kayitAc(ODEMELER, KAYIT_ONEK + "yonetim/odemeler.json", { txid:
 bekleyen = await kayitAc(BEKLEYENLER, KAYIT_ONEK + "yonetim/bekleyenler.json", { liste: [] });
 parmakizi = await kayitAc(PARMAKIZI, KAYIT_ONEK + "yonetim/parmakizi.json", { kayitlar: {} });
 radyo = await kayitAc(RADYO, KAYIT_ONEK + "yonetim/radyo.json", { liste: [] });
+dinlemeler = await kayitAc(DINLEMELER, KAYIT_ONEK + "yonetim/dinlemeler.json", { olay: [] });
+sanatcilar = await kayitAc(SANATCILAR, KAYIT_ONEK + "yonetim/sanatcilar.json", { aylar: {}, odenen: [] });
+raporlar = await kayitAc(RAPORLAR, KAYIT_ONEK + "yonetim/raporlar.json", { liste: [] });
+if (!fs.existsSync(DINLEMELER)) await dinlemeYaz();
+if (!fs.existsSync(SANATCILAR)) await sanatciYaz();
+if (!fs.existsSync(RAPORLAR)) await raporYaz();
 depoyaYedekle(ODEMELER, KAYIT_ONEK + "yonetim/odemeler.json");
 const sunucu = http.createServer(async (req, res) => {
   try {
@@ -1236,6 +1504,7 @@ const sunucu = http.createServer(async (req, res) => {
       if (u.pathname === "/odeme/tamamla") return await tamamla(req, res);
       if (u.pathname === "/odeme/link") return await linkKontrol(req, res);
       if (u.pathname === "/uyelik/giris") return await uyelikGiris(req, res);
+      if (u.pathname === "/dinleme") return await dinlemeSay(req, res);
       if (u.pathname === "/yukle/baslat") return await yuklemeBaslat(req, res);
       if (u.pathname === "/radyo/gonder") return await radyoGonder(req, res);
       const yb = /^\/yukle\/([a-f0-9]{12})\/bitir$/.exec(u.pathname);

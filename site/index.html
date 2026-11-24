@@ -27,6 +27,10 @@
   <p class="blaze-serit" id="blaze-serit"><strong>BCH BLAZE 2026</strong><span class="uzun"> · built from scratch during the hackathon</span> · <a href="https://github.com/jakalijey/gramofon/blob/main/docs/gramofon-blaze-2026.pdf" target="_blank" rel="noopener">Presentation</a> · <a href="https://github.com/jakalijey/gramofon" target="_blank" rel="noopener">Source code</a> · <span class="uzun">Vote with </span>EMBER2026<span class="uzun"> tokens</span>: <button type="button" class="blaze-adres" id="blaze-adres" data-adres="bitcoincash:zrcq3lg6h3hdl04k0l8fzsger88yvwqvxuswgq9yhe" title="Copy this CashTokens address" aria-label="Copy the CashTokens address for EMBER2026 votes"><span class="uzun">bitcoincash:</span>zrcq3lg6<span class="adres-orta">h3hdl04k0l8fzsger88yvwqvxusw</span><span class="adres-son">gq9yhe</span></button><span class="blaze-durum" id="blaze-durum" aria-live="polite"></span></p>
   <p class="test-serit" id="test-serit" hidden><strong>Test network</strong> · pay with free Chipnet test coins (tbch.googol.cash) · <a href="/?test=0">Back to the real site</a></p>
 </div>
+<div class="saklama" id="saklama" role="region" aria-label="Storage notice" hidden>
+  <p>Gramofon keeps your membership ticket and a few settings in this browser, so you stay a member. No cookies, no ads, no tracking. <a href="/privacy">Privacy</a></p>
+  <button type="button" id="saklama-tamam">OK</button>
+</div>
 <main class="duzen bekliyor">
   <section class="sahne" id="sahne" aria-label="The gramophone">
     <canvas id="tuval" aria-hidden="true"></canvas>
@@ -175,6 +179,7 @@
       <label class="alan"><span class="alan-ad">Artist name</span><input type="text" id="y-sanatci" maxlength="80" autocomplete="off"></label>
       <label class="secim"><input type="checkbox" id="y-haber"><span>Email me a receipt and the review result</span></label>
       <label class="alan" id="y-eposta-alan" hidden><span class="alan-ad">Your email</span><input type="email" id="y-eposta" maxlength="120" autocomplete="email" inputmode="email"></label>
+      <label class="secim" id="y-rapor-alan" hidden><input type="checkbox" id="y-rapor" checked><span>Also email me a monthly report of my plays and earnings</span></label>
       <label class="secim"><input type="checkbox" id="y-sahibim"><span>I made this song, or I own the rights to share it.</span></label>
       <div class="yukleme-ilerleme" id="yukleme-ilerleme" hidden><div class="yukleme-dolu" id="yukleme-dolu"></div></div>
       <p class="yukleme-uyari" id="yukleme-uyari" hidden>Please keep this page open until your song is in. Big files can take a few minutes.</p>
