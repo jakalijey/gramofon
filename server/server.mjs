@@ -1238,7 +1238,7 @@ function bakiye(kim, haric) {
   return b;
 }
 const bchYaz = (sat) => (sat / 1e8).toFixed(8).replace(/0+$/, "").replace(/\.$/, "");
-const dolarYaz = (sat, usd) => !usd ? "" : sat * usd / 1e8 >= 0.01 ? ` (about $${(sat * usd / 1e8).toFixed(2)})` : " (less than one cent)";
+const dolarYaz = (sat, usd) => !usd || !(sat > 0) ? "" : sat * usd / 1e8 >= 0.01 ? ` (about $${(sat * usd / 1e8).toFixed(2)})` : " (less than one cent)";
 function raporMetni(m, ayAdi, usd) {
   const satirlar = m.sarkilar.map((s) => `- “${s.ad}”: ${s.sayildi} ${s.sayildi === 1 ? "play" : "plays"} from ${s.dinleyen} ${s.dinleyen === 1 ? "listener" : "listeners"}`);
   const esik = m.bakiye * usd / 1e8 >= ODEME_ESIGI_USD;
@@ -1450,6 +1450,12 @@ async function yonetim(req, res, u) {
   if (g.raporDur === true) {
     delete e.raporEposta;
     e.rapor = false;
+  }
+  if (typeof g.raporAc === "string") {
+    const p = temiz(g.raporAc, 120);
+    if (e.durum !== "onay" || !EPOSTA.test(p)) return yanit(req, res, 400, { hata: "onaylı şarkı ve geçerli e-posta gerekli" });
+    e.raporEposta = p;
+    e.rapor = true;
   }
   if (g.makbuz === "yaz" && e.haber && e.eposta) e.makbuz = makbuzYaz(e);
   if (g.makbuz === "gitti" || g.makbuz === "hata") e.makbuz = { durum: g.makbuz, zaman: simdiSn() };
