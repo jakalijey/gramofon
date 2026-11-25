@@ -36,10 +36,16 @@
   function tarihYaz(d) {
     return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   }
+  var durumSaat = 0;
   function durumYaz(metin, tur) {
     var e = $("#durum");
     e.textContent = metin || "";
     e.dataset.tur = tur || "";
+    $("#uyelik").dataset.bos = metin ? "0" : "1";
+    clearTimeout(durumSaat);
+    if (metin && tur !== "hata" && uyelik.aktif) durumSaat = setTimeout(function() {
+      durumYaz("");
+    }, 6e3);
     if (tur === "hata" && panoVar && !panoAcik) panoAc(true);
   }
   var dikMi = window.matchMedia("(max-width: 899px) and (orientation: portrait), (max-width: 899px) and (min-height: 501px)");
@@ -651,8 +657,17 @@
       })();
     });
   }
+  function yaldizCiz() {
+    var y = uyelik.aktif && GramofonUyelik.yaldiz ? GramofonUyelik.yaldiz(uyelik.bitis) : null;
+    document.querySelectorAll(".baslik h1").forEach(function(h) {
+      h.classList.toggle("yaldizli", !!y);
+      if (y) for (var k in y.stil) h.style.setProperty(k, y.stil[k]);
+    });
+  }
   function uyelikCiz() {
     $("#uyelik").dataset.aktif = uyelik.aktif ? "1" : "0";
+    document.documentElement.dataset.uye = uyelik.aktif ? "1" : "0";
+    yaldizCiz();
     $("#jeton-al").hidden = uyelik.aktif;
     $("#giris-yap").hidden = uyelik.aktif;
     $("#uye-bilgi").hidden = !uyelik.aktif;
@@ -694,7 +709,7 @@
       return jetonDusur();
     }).then(function() {
       uyelikCiz();
-      durumYaz("Enjoy. Your month of music starts now.", "iyi");
+      durumYaz("Enjoy. The music starts now.", "iyi");
       GramofonOynatici.cal(hedefIndeks >= 0 ? hedefIndeks : null);
       setTimeout(function() {
         panoAc(false);
@@ -718,7 +733,7 @@
     }).then(function(s) {
       uyelik = { aktif: true, bitis: s.bitis };
       uyelikCiz();
-      durumYaz("Welcome back. You are a member until " + tarihYaz(s.bitis) + ". Press play.", "iyi");
+      durumYaz("Welcome back. Press play.", "iyi");
     }).catch(function(e) {
       durumYaz(e && e.message ? e.message : "Sign-in did not work.", "hata");
     }).then(function() {
@@ -1286,5 +1301,6 @@
     });
   });
   uyelikCiz();
+  setInterval(yaldizCiz, 36e5);
   bekleyenleriAl();
 })();

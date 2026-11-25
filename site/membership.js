@@ -17,6 +17,31 @@
     } catch (e) {
     }
   }
+  var YALDIZ = [
+    [0, [[255, 244, 194], [242, 207, 102], [215, 162, 43], [158, 111, 20], [226, 184, 76], [251, 230, 160]]],
+    [0.55, [[241, 207, 166], [200, 142, 86], [156, 102, 50], [110, 68, 32], [174, 120, 69], [221, 178, 136]]],
+    [1, [[165, 156, 144], [126, 113, 100], [94, 82, 72], [63, 54, 48], [102, 89, 78], [141, 131, 119]]]
+  ];
+  function karistir(a, b, k) {
+    return a.map(function(x, i) {
+      return Math.round(x + (b[i] - x) * k);
+    });
+  }
+  function yaldiz(bitis, simdi) {
+    if (!bitis) return null;
+    var kalan = (+bitis - (simdi == null ? Date.now() : +simdi)) / GUN;
+    var gun = Math.min(30, Math.max(1, 30 - Math.floor(kalan)));
+    var t = (gun - 1) / 29, d = t <= YALDIZ[1][0] ? 0 : 1, a = YALDIZ[d], b = YALDIZ[d + 1], k = (t - a[0]) / (b[0] - a[0]);
+    var stil = {};
+    a[1].forEach(function(r, i) {
+      stil["--y" + i] = "rgb(" + karistir(r, b[1][i], k).join(",") + ")";
+    });
+    stil["--y-kenar"] = "rgba(" + karistir([120, 80, 10], [40, 30, 25], t).join(",") + ",.55)";
+    stil["--y-golge"] = "rgba(" + karistir([95, 60, 5], [30, 22, 18], t).join(",") + ",.5)";
+    stil["--y-isilti"] = "rgba(255,196,70," + (0.45 * Math.max(0, 1 - t / 0.5)).toFixed(2) + ")";
+    stil["--y-pas"] = Math.max(0, (t - 0.45) / 0.55).toFixed(2);
+    return { gun, stil };
+  }
   window.GramofonUyelik = {
     fiyatUsd: 0.01,
     bilet: function() {
@@ -69,6 +94,7 @@
       if (window.GramofonOdeme && window.GramofonOdeme.girisYap) return window.GramofonOdeme.girisYap(bilgi || function() {
       });
       return Promise.reject(new Error("Sign-in is not connected on this page yet."));
-    }
+    },
+    yaldiz
   };
 })();

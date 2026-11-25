@@ -35,6 +35,23 @@ button { font: inherit; color: inherit; }
 .baslik h1 { margin: 0; font: 600 28px/1.1 Georgia, "Times New Roman", serif; letter-spacing: .01em; }
 .baslik p { margin: 4px 0 0; color: var(--ikincil); font-size: 14px; }
 
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .baslik h1.yaldizli {
+    color: transparent; -webkit-text-fill-color: transparent;
+    background-image:
+      radial-gradient(circle, rgba(48, 40, 34, calc(var(--y-pas, 0) * .5)) 0 .7px, transparent 1.1px),
+      radial-gradient(circle, rgba(64, 72, 60, calc(var(--y-pas, 0) * .4)) 0 .6px, transparent 1px),
+      linear-gradient(180deg, var(--y0) 0%, var(--y1) 22%, var(--y2) 45%, var(--y3) 52%, var(--y4) 70%, var(--y5) 100%);
+    background-size: 5px 5px, 7px 7px, 100% 100%; background-position: 0 0, 2px 3px, 0 0;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-stroke: .5px var(--y-kenar);
+    filter: drop-shadow(0 1px 0 var(--y-golge)) drop-shadow(0 0 7px var(--y-isilti));
+  }
+}
+@media (forced-colors: active) { .baslik h1.yaldizli { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; filter: none; } }
+html[data-uye="1"] .tanitim, html[data-uye="1"] .uyelik[data-bos="1"] { display: none; }
+.salon-karsilama em { font-style: normal; }
+
 .jeton {
   display: flex; align-items: center; gap: 12px; width: 100%; min-height: 62px; padding: 10px 16px;
   border: 0; border-radius: 12px; background: var(--kehribar); color: var(--murekkep);
@@ -183,6 +200,8 @@ html.masaustu[data-oda="kayit"] .saklama { display: none; }
 .kayit-davet svg { flex: none; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .kayit-davet strong { font-weight: 700; }
 .panel-alt .alt-bag { padding-top: 0; border-top: 0; font-size: 12px; }
+.panel-alt .uye { font-size: 12px; }
+.panel-alt .uye span { color: inherit; }
 .alt-bag { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-top: 10px; border-top: 1px solid var(--kenar); color: var(--ikincil); font-size: 12.5px; }
 .alt-bag a { color: var(--ikincil); text-decoration: none; }
 .alt-bag a:hover { color: var(--murekkep); text-decoration: underline; }
