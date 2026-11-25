@@ -757,6 +757,34 @@
   $("#karisik").addEventListener("click", function() {
     GramofonOynatici.karisik(this.getAttribute("aria-pressed") !== "true");
   });
+  var TEKRAR_YAZI = { hepsi: "Repeat: all songs", tek: "Repeat: this song", kapali: "Repeat: off" };
+  var TEKRAR_SOZ = { hepsi: "Repeating the playlist.", tek: "Repeating this song.", kapali: "Repeat off: the music stops after the last song." };
+  var tekrarVar = typeof GramofonOynatici.tekrar === "function";
+  if (tekrarVar) try {
+    var tk = localStorage.getItem("gramofon-tekrar");
+    if (TEKRAR_YAZI[tk]) GramofonOynatici.tekrar(tk);
+  } catch (e) {
+  }
+  function tekrarCiz(m) {
+    var b = $("#tekrar");
+    if (!TEKRAR_YAZI[m]) return;
+    b.dataset.tekrar = m;
+    b.setAttribute("aria-label", TEKRAR_YAZI[m]);
+    b.title = TEKRAR_YAZI[m];
+  }
+  if (tekrarVar) tekrarCiz(GramofonOynatici.tekrar());
+  else $("#tekrar").hidden = true;
+  $("#tekrar").addEventListener("click", function() {
+    if (!tekrarVar) return;
+    var sonra = { hepsi: "tek", tek: "kapali", kapali: "hepsi" }[GramofonOynatici.tekrar()] || "hepsi";
+    GramofonOynatici.tekrar(sonra);
+    tekrarCiz(sonra);
+    try {
+      localStorage.setItem("gramofon-tekrar", sonra);
+    } catch (e) {
+    }
+    durumYaz(TEKRAR_SOZ[sonra]);
+  });
   document.addEventListener("keydown", function(e) {
     if (e.code !== "Space" || e.repeat || /^(BUTTON|INPUT|TEXTAREA|SELECT|A)$/.test(e.target.tagName)) return;
     e.preventDefault();
@@ -776,6 +804,7 @@
     $("#cal").dataset.caliyor = d.caliyor ? "1" : "0";
     $("#cal").setAttribute("aria-label", d.caliyor ? "Pause" : "Play");
     $("#karisik").setAttribute("aria-pressed", d.karisik ? "true" : "false");
+    if (d.tekrar && $("#tekrar").dataset.tekrar !== d.tekrar) tekrarCiz(d.tekrar);
     $("#ilerleme-dolu").style.transform = "scaleX(" + (d.sure ? Math.min(1, d.gecen / d.sure) : 0) + ")";
     $("#gecen").textContent = sureYaz(d.gecen);
     $("#sure").textContent = sureYaz(d.sure);

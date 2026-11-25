@@ -105,6 +105,14 @@ html.masaustu[data-oda="kayit"] .saklama { display: none; }
 .dugme.ana[data-caliyor="1"] .ikon-dur { display: block; }
 #karisik { margin-left: auto; color: var(--ikincil); }
 #karisik[aria-pressed="true"] { color: var(--kehribar-yazi); }
+
+#tekrar { position: relative; color: var(--kehribar-yazi); }
+#tekrar[data-tekrar="kapali"] { color: var(--ikincil); }
+.tekrar-bir {
+  display: none; position: absolute; top: 8px; right: 7px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px;
+  background: var(--kehribar-yazi); color: var(--yuzey); font: 700 9px/14px system-ui, -apple-system, "Segoe UI", sans-serif; text-align: center;
+}
+#tekrar[data-tekrar="tek"] .tekrar-bir { display: block; }
 .jeton:focus-visible, .dugme:focus-visible, .parca:focus-visible, .liste-ust button:focus-visible { outline: 2px solid var(--murekkep); outline-offset: 2px; }
 
 .liste-bolum { display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--kenar); }

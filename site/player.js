@@ -3,6 +3,7 @@
   var SESSIZ = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
   var liste = [], sira = [], konum = -1, karisikMi = false, caliyor = false, dinle = function() {
   };
+  var tekrarMod = "hepsi", listeBitti = false;
   var izinli = null;
   var au = null, ctx = null, an = null, kazanc = null, uyandi = false, hataSay = 0, tempoBagli = false;
   var uretimBas = 0, uretimGecen = 0, uretimSayac = 0;
@@ -31,7 +32,7 @@
       if (dosyaCaliyorMu() && !au.ended) caliyorYap(false);
     });
     au.addEventListener("ended", function() {
-      if (dosyaCaliyorMu()) sonraki();
+      if (dosyaCaliyorMu()) bitti();
     });
     au.addEventListener("timeupdate", function() {
       if (dosyaCaliyorMu()) {
@@ -162,6 +163,7 @@
   function baslat(k) {
     if (!liste.length || !sira.length) return;
     konum = (k % sira.length + sira.length) % sira.length;
+    listeBitti = false;
     var p = parca(), i = sira[konum];
     if (au && !au.paused) au.pause();
     uretimDur();
@@ -184,7 +186,7 @@
       uretimSayac = setInterval(function() {
         uretimGecen = (performance.now() - uretimBas) / 1e3;
         dinle("zaman", durum());
-        if (uretimGecen >= (p.sure || 150)) sonraki();
+        if (uretimGecen >= (p.sure || 150)) bitti();
       }, 250);
       caliyorYap(true);
     } else {
@@ -219,6 +221,10 @@
       return;
     }
     if (caliyor) return;
+    if (listeBitti) {
+      baslat(0);
+      return;
+    }
     if (p.tur === "uretim") {
       baslat(konum);
       return;
@@ -234,6 +240,28 @@
   }
   function sonraki() {
     if (liste.length) baslat(konum + 1);
+  }
+  function bitti() {
+    if (tekrarMod === "tek") {
+      baslat(konum);
+      return;
+    }
+    if (tekrarMod === "kapali" && konum >= sira.length - 1) {
+      uretimDur();
+      tempoDur();
+      listeBitti = true;
+      caliyorYap(false);
+      dinle("durum", durum());
+      return;
+    }
+    sonraki();
+  }
+  function tekrar(m) {
+    if (m === "hepsi" || m === "tek" || m === "kapali") {
+      tekrarMod = m;
+      dinle("durum", durum());
+    }
+    return tekrarMod;
   }
   function onceki() {
     if (!liste.length) return;
@@ -279,7 +307,7 @@
       gecen = au.currentTime || 0;
       sure = isFinite(au.duration) ? au.duration : p.sure || 0;
     }
-    return { parca: p, dizin: p ? sira[konum] : -1, caliyor, karisik: karisikMi, gecen, sure, ses: ctx ? ctx.state : "yok" };
+    return { parca: p, dizin: p ? sira[konum] : -1, caliyor, karisik: karisikMi, tekrar: tekrarMod, gecen, sure, ses: ctx ? ctx.state : "yok" };
   }
   var medyaKuruldu = false;
   function medya(p) {
@@ -314,6 +342,7 @@
     sonraki,
     onceki,
     karisik,
+    tekrar,
     durum,
     izin: function(d) {
       izinli = Array.isArray(d) ? d.slice() : null;
